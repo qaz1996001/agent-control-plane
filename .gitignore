@@ -3,3 +3,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.egg-info/
+docs/src/*.report.json
+docs/src/*.rep.json

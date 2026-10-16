@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="1000" height="700" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="showcase" data-max-bends-per-edge="2" data-max-total-bends="8" data-max-route-stretch="1.35" data-max-bridged-crossings="0" data-min-node-gap="40.0" data-min-container-gutter="20.0" data-min-label-clearance="4.0" data-min-segment-length="16.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f97316"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+    </marker>
+    <filter id="shadowSoft" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <filter id="shadowGlass" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#020617" flood-opacity="0.28"/>
+    </filter>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 30px; font-weight: 700; fill: #111827; }
+    .subtitle { font-size: 14px; font-weight: 500; fill: #6b7280; }
+    .section { font-size: 13px; font-weight: 700; fill: #2563eb; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #64748b; }
+    .node-title { font-weight: 700; fill: #111827; }
+    .node-sub { font-weight: 500; fill: #6b7280; }
+    .node-type { font-size: 12px; font-weight: 700; fill: #64748b; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b7280; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b7280; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #64748b; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #64748b; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #111827; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="1000.0" height="700.0" fill="#ffffff"/>
+  <text x="500.0" y="56" text-anchor="middle" class="title">資料狀態：PipelineState 的生命週期</text>
+  <text x="500.0" y="82" text-anchor="middle" class="subtitle">14 個欄位，每一格都有明確的寫入者；human_decision 只有 resume 寫得到</text>
+  <g id="fields" data-graph-role="container" data-container-id="fields" data-semantic-role="boundary" data-graph-bounds="620,92,976,572">
+  <rect data-graph-role="container" x="620.0" y="92.0" width="356.0" height="480.0" rx="16.0" fill="none" stroke="#3b82f6" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="638.0" y="116.0" class="section">欄位與寫入者</text>
+    <rect id="fields-header" data-graph-role="reserved" data-reserved-kind="container-header" x="628" y="98" width="108" height="30" fill="none" stroke="none"/>
+  </g>
+  <path id="t1" data-graph-role="edge" data-edge-id="t1" data-source="s1" data-target="s2" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 306,188 L 306,228" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="t2" data-graph-role="edge" data-edge-id="t2" data-source="s2" data-target="s3" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 306,292 L 306,332" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="t3" data-graph-role="edge" data-edge-id="t3" data-source="s3" data-target="s4" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 306,396 L 306,436" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="t4" data-graph-role="edge" data-edge-id="t4" data-source="s4" data-target="s5" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 306,500 L 306,540" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <g id="node-s1" data-graph-role="node" data-node-id="s1" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,124,576,188">
+  <rect x="36.0" y="124.0" width="540.0" height="64.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="1　new_state 建立" data-text-max-width="516.0" x="306.0" y="156.0" text-anchor="middle" class="node-title" font-size="18">1 new_state 建立</text>
+  <text data-text-role="subtitle" data-full-text="設下護欄：max_steps、budget_tokens" data-text-max-width="516.0" x="306.0" y="178.0" text-anchor="middle" class="node-sub" font-size="12">設下護欄：max_steps、budget_tokens</text>
+  </g>
+  <g id="node-s2" data-graph-role="node" data-node-id="s2" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,228,576,292">
+  <rect x="36.0" y="228.0" width="540.0" height="64.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="2.0" filter="url(#shadowSoft)"/>
+  <rect x="42.0" y="234.0" width="528.0" height="52.0" rx="7.0" fill="none" stroke="#3b82f6" stroke-width="1.2" opacity="0.65"/>
+  <text data-text-role="title" data-full-text="2　節點逐一 patch" data-text-max-width="508.0" x="306.0" y="260.0" text-anchor="middle" class="node-title" font-size="18">2 節點逐一 patch</text>
+  <text data-text-role="subtitle" data-full-text="每個代理只寫自己的報告欄位" data-text-max-width="508.0" x="306.0" y="282.0" text-anchor="middle" class="node-sub" font-size="12">每個代理只寫自己的報告欄位</text>
+  </g>
+  <g id="node-s3" data-graph-role="node" data-node-id="s3" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,332,576,396">
+  <rect x="36.0" y="332.0" width="540.0" height="64.0" rx="10.0" fill="#fff7ed" stroke="#f97316" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="3　interrupt 凍結" data-text-max-width="516.0" x="306.0" y="364.0" text-anchor="middle" class="node-title" font-size="18">3 interrupt 凍結</text>
+  <text data-text-role="subtitle" data-full-text="整個狀態寫進 checkpoint，執行停住" data-text-max-width="516.0" x="306.0" y="386.0" text-anchor="middle" class="node-sub" font-size="12">整個狀態寫進 checkpoint，執行停住</text>
+  </g>
+  <g id="node-s4" data-graph-role="node" data-node-id="s4" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,436,576,500">
+  <rect x="36.0" y="436.0" width="540.0" height="64.0" rx="10.0" fill="#faf5ff" stroke="#8b5cf6" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="4　resume 注入決定" data-text-max-width="516.0" x="306.0" y="468.0" text-anchor="middle" class="node-title" font-size="18">4 resume 注入決定</text>
+  <text data-text-role="subtitle" data-full-text="唯一能寫 human_decision 的時機" data-text-max-width="516.0" x="306.0" y="490.0" text-anchor="middle" class="node-sub" font-size="12">唯一能寫 human_decision 的時機</text>
+  </g>
+  <g id="node-s5" data-graph-role="node" data-node-id="s5" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,540,576,604">
+  <rect x="36.0" y="540.0" width="540.0" height="64.0" rx="10.0" fill="#e6f4ea" stroke="#1e7e34" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="5　終態" data-text-max-width="516.0" x="306.0" y="572.0" text-anchor="middle" class="node-title" font-size="18">5 終態</text>
+  <text data-text-role="subtitle" data-full-text="completed 保留完整執行順序" data-text-max-width="516.0" x="306.0" y="594.0" text-anchor="middle" class="node-sub" font-size="12">completed 保留完整執行順序</text>
+  </g>
+  <g id="node-f1" data-graph-role="node" data-node-id="f1" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="644,128,952,204">
+  <rect x="644.0" y="128.0" width="308.0" height="76.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="建立時寫入" data-text-max-width="284.0" x="798.0" y="166.0" text-anchor="middle" class="node-title" font-size="18">建立時寫入</text>
+  <text data-text-role="subtitle" data-full-text="trigger, payload, max_steps, budget_tokens" data-text-max-width="284.0" x="798.0" y="188.0" text-anchor="middle" class="node-sub" font-size="11.73">trigger, payload, max_steps, budget_tokens</text>
+  </g>
+  <g id="node-f2" data-graph-role="node" data-node-id="f2" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="644,244,952,336">
+  <rect x="644.0" y="244.0" width="308.0" height="92.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="節點寫入" data-text-max-width="284.0" x="798.0" y="290.0" text-anchor="middle" class="node-title" font-size="18">節點寫入</text>
+  <text data-text-role="subtitle" data-full-text="四個 report, next_agent, step_count, completed" data-text-max-width="284.0" x="798.0" y="312.0" text-anchor="middle" class="node-sub" font-size="10.75">四個 report, next_agent, step_count, completed</text>
+  </g>
+  <g id="node-f3" data-graph-role="node" data-node-id="f3" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="644,376,952,448">
+  <rect x="644.0" y="376.0" width="308.0" height="72.0" rx="10.0" fill="#faf5ff" stroke="#8b5cf6" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="只有 resume 寫入" data-text-max-width="284.0" x="798.0" y="412.0" text-anchor="middle" class="node-title" font-size="18">只有 resume 寫入</text>
+  <text data-text-role="subtitle" data-full-text="human_decision" data-text-max-width="284.0" x="798.0" y="434.0" text-anchor="middle" class="node-sub" font-size="12">human_decision</text>
+  </g>
+  <g id="node-f4" data-graph-role="node" data-node-id="f4" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="644,488,952,544">
+  <rect x="644.0" y="488.0" width="308.0" height="56.0" rx="10.0" fill="#fce8e6" stroke="#a50e0e" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="沒有人跨寫" data-text-max-width="284.0" x="798.0" y="516.0" text-anchor="middle" class="node-title" font-size="18">沒有人跨寫</text>
+  <text data-text-role="subtitle" data-full-text="代理不得寫別人的報告欄位" data-text-max-width="284.0" x="798.0" y="538.0" text-anchor="middle" class="node-sub" font-size="12">代理不得寫別人的報告欄位</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="272" y="612" width="362" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="282.0" y1="626.0" x2="312.0" y2="626.0" stroke="#7c3aed" stroke-width="2.4" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="322.0" y="630.0" class="legend">自動推進</text>
+    <line data-graph-role="decoration" x1="398.0" y1="626.0" x2="428.0" y2="626.0" stroke="#ef4444" stroke-width="2.4" marker-end="url(#arrowG)"/>
+    <text data-graph-role="decoration" x="438.0" y="630.0" class="legend">等待人工</text>
+    <line data-graph-role="decoration" x1="514.0" y1="626.0" x2="544.0" y2="626.0" stroke="#10b981" stroke-width="2.4" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="554.0" y="630.0" class="legend">帶決定恢復</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="36,658,260,674">
+  <text x="36.0" y="670.0" class="footnote">沒有決定就恢復，deployer 仍然拒絕 —— 缺席不等於同意</text>
+  </g>
+</svg>

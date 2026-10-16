@@ -15,6 +15,8 @@ Built on LangGraph for the runtime (node execution, checkpointing, and the
 interrupt that makes approval a real pause). The routing policy is a plain
 function over state, so it is testable without building a graph.
 
+Four views of what the code does -- control flow, data flow, state lifecycle and usage scenarios -- are in [docs/architecture.md](docs/architecture.md).
+
 The domain is a software-delivery pipeline — Ticket → Plan → Review →
 Deploy — because that is the case where "the agent decided to deploy" is a
 bad sentence to have to say.

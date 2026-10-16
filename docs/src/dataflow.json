@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "quality_profile": "showcase",
+  "text_policy": "strict",
+  "width": 1000,
+  "height": 560,
+  "title": "資料流：狀態是唯一的共享面，工具是唯一的對外面",
+  "subtitle": "代理之間不直接傳值，只透過 PipelineState；對外一律經 invoke 與白名單",
+  "containers": [
+    {
+      "id": "inner",
+      "x": 24,
+      "y": 88,
+      "width": 952,
+      "height": 148,
+      "label": "狀態面（行程內）",
+      "stroke": "#3b82f6",
+      "fill": "none"
+    },
+    {
+      "id": "outer",
+      "x": 258,
+      "y": 276,
+      "width": 718,
+      "height": 148,
+      "label": "工具面（對外）",
+      "stroke": "#8b5cf6",
+      "fill": "none"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "payload",
+      "kind": "rect",
+      "x": 48,
+      "y": 124,
+      "width": 190,
+      "height": 72,
+      "label": "payload",
+      "sublabel": "ticket / pr 編號",
+      "fill": "#ffffff",
+      "stroke": "#cbd5e1",
+      "flat": true
+    },
+    {
+      "id": "agents",
+      "kind": "double_rect",
+      "x": 278,
+      "y": 124,
+      "width": 230,
+      "height": 72,
+      "label": "代理節點",
+      "sublabel": "讀 payload 與前序報告",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6"
+    },
+    {
+      "id": "reports",
+      "kind": "rect",
+      "x": 548,
+      "y": 124,
+      "width": 230,
+      "height": 72,
+      "label": "四個報告欄位",
+      "sublabel": "各代理只寫自己那一格",
+      "fill": "#ffffff",
+      "stroke": "#334155"
+    },
+    {
+      "id": "audit",
+      "kind": "rect",
+      "x": 818,
+      "y": 124,
+      "width": 134,
+      "height": 72,
+      "label": "completed",
+      "sublabel": "只增不改",
+      "fill": "#e6f4ea",
+      "stroke": "#1e7e34"
+    },
+    {
+      "id": "access",
+      "kind": "hexagon",
+      "x": 278,
+      "y": 308,
+      "width": 230,
+      "height": 80,
+      "label": "invoke → ACCESS",
+      "sublabel": "不在白名單即拒絕",
+      "fill": "#faf5ff",
+      "stroke": "#8b5cf6"
+    },
+    {
+      "id": "adapter",
+      "kind": "rect",
+      "x": 548,
+      "y": 312,
+      "width": 230,
+      "height": 72,
+      "label": "7 個 adapter",
+      "sublabel": "拋錯收斂成 error 物件",
+      "fill": "#fff7ed",
+      "stroke": "#f97316"
+    },
+    {
+      "id": "ext",
+      "kind": "cylinder",
+      "x": 818,
+      "y": 308,
+      "width": 134,
+      "height": 80,
+      "label": "外部系統",
+      "sublabel": "Jira / Git / CI",
+      "fill": "#ffffff",
+      "stroke": "#cbd5e1"
+    }
+  ],
+  "arrows": [
+    {
+      "id": "d1",
+      "source": "payload",
+      "target": "agents",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "read"
+    },
+    {
+      "id": "d2",
+      "source": "agents",
+      "target": "reports",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write"
+    },
+    {
+      "id": "d3",
+      "source": "reports",
+      "target": "audit",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "feedback"
+    },
+    {
+      "id": "d4",
+      "source": "agents",
+      "target": "access",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control"
+    },
+    {
+      "id": "d5",
+      "source": "access",
+      "target": "adapter",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control"
+    },
+    {
+      "id": "d6",
+      "source": "adapter",
+      "target": "ext",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "write"
+    }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 36,
+  "legend_y": 462,
+  "legend": [
+    {
+      "flow": "read",
+      "label": "讀"
+    },
+    {
+      "flow": "write",
+      "label": "寫"
+    },
+    {
+      "flow": "control",
+      "label": "權限檢查"
+    },
+    {
+      "flow": "feedback",
+      "label": "稽核軌跡"
+    }
+  ],
+  "footer": "代理拿不到彼此的內部值，也拿不到白名單外的工具 —— 兩者都是測試斷言的對象",
+  "footer_x": 36,
+  "footer_y": 524
+}

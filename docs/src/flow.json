@@ -1,0 +1,205 @@
+{
+  "schema_version": 1,
+  "mode": "architecture",
+  "template_type": "architecture",
+  "style": 1,
+  "quality_profile": "showcase",
+  "text_policy": "strict",
+  "width": 1000,
+  "height": 750,
+  "title": "程式流程：路由是查表，核可是真的停住",
+  "subtitle": "三級優先序：上限排第一，所以循環投不贏它",
+  "containers": [
+    {
+      "id": "prec",
+      "x": 340,
+      "y": 88,
+      "width": 392,
+      "height": 308,
+      "label": "next_node 優先序",
+      "stroke": "#3b82f6",
+      "fill": "none"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "trig",
+      "kind": "rect",
+      "x": 36,
+      "y": 96,
+      "width": 280,
+      "height": 56,
+      "label": "trigger",
+      "sublabel": "9 種，封閉集合",
+      "fill": "#ffffff",
+      "stroke": "#cbd5e1",
+      "flat": true
+    },
+    {
+      "id": "table",
+      "kind": "hexagon",
+      "x": 36,
+      "y": 196,
+      "width": 280,
+      "height": 76,
+      "label": "ROUTE_TABLE 查表",
+      "sublabel": "查無即拋錯，不退回預設值",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6"
+    },
+    {
+      "id": "nodes",
+      "kind": "double_rect",
+      "x": 36,
+      "y": 420,
+      "width": 280,
+      "height": 70,
+      "label": "代理節點",
+      "sublabel": "4 個，各寫自己的報告",
+      "fill": "#ffffff",
+      "stroke": "#334155"
+    },
+    {
+      "id": "p1",
+      "kind": "rect",
+      "x": 364,
+      "y": 124,
+      "width": 344,
+      "height": 56,
+      "label": "1　步數達上限 → END",
+      "sublabel": "最高優先",
+      "fill": "#fce8e6",
+      "stroke": "#a50e0e"
+    },
+    {
+      "id": "p2",
+      "kind": "rect",
+      "x": 364,
+      "y": 220,
+      "width": 344,
+      "height": 56,
+      "label": "2　requires_approval → 閘門",
+      "sublabel": "壓過待處理的交棒",
+      "fill": "#eff6ff",
+      "stroke": "#3b82f6"
+    },
+    {
+      "id": "p3",
+      "kind": "rect",
+      "x": 364,
+      "y": 316,
+      "width": 344,
+      "height": 56,
+      "label": "3　next_agent → 該代理",
+      "sublabel": "明確交棒，否則 END",
+      "fill": "#ffffff",
+      "stroke": "#cbd5e1",
+      "flat": true
+    },
+    {
+      "id": "gate",
+      "kind": "double_rect",
+      "x": 364,
+      "y": 420,
+      "width": 344,
+      "height": 70,
+      "label": "approval_gate",
+      "sublabel": "interrupt_before：停住並存檔",
+      "fill": "#fff7ed",
+      "stroke": "#f97316"
+    },
+    {
+      "id": "human",
+      "kind": "rect",
+      "x": 756,
+      "y": 420,
+      "width": 208,
+      "height": 70,
+      "label": "人工審核",
+      "sublabel": "看前一代理的報告",
+      "fill": "#ffffff",
+      "stroke": "#cbd5e1"
+    },
+    {
+      "id": "deploy",
+      "kind": "rect",
+      "x": 756,
+      "y": 530,
+      "width": 208,
+      "height": 82,
+      "label": "deployer",
+      "sublabel": "沒有 approve 就不部署",
+      "fill": "#e6f4ea",
+      "stroke": "#1e7e34"
+    }
+  ],
+  "arrows": [
+    {
+      "id": "e1",
+      "source": "trig",
+      "target": "table",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "read"
+    },
+    {
+      "id": "e2",
+      "source": "table",
+      "target": "nodes",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "control",
+      "label": "命中"
+    },
+    {
+      "id": "e3",
+      "source": "nodes",
+      "target": "gate",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "control"
+    },
+    {
+      "id": "e4",
+      "source": "gate",
+      "target": "human",
+      "source_port": "right",
+      "target_port": "left",
+      "flow": "feedback",
+      "label": "暫停"
+    },
+    {
+      "id": "e5",
+      "source": "human",
+      "target": "deploy",
+      "source_port": "bottom",
+      "target_port": "top",
+      "flow": "write",
+      "label": "resume"
+    }
+  ],
+  "legend_orientation": "horizontal",
+  "legend_x": 36,
+  "legend_y": 658,
+  "legend": [
+    {
+      "flow": "read",
+      "label": "進入"
+    },
+    {
+      "flow": "control",
+      "label": "控制流（無 LLM）"
+    },
+    {
+      "flow": "feedback",
+      "label": "暫停等人"
+    },
+    {
+      "flow": "write",
+      "label": "帶決定恢復"
+    }
+  ],
+  "footer": "控制流裡沒有任何模型呼叫 —— test_routing_touches_no_model 把所有模型進入點弄壞後仍然通過",
+  "footer_x": 36,
+  "footer_y": 716
+}

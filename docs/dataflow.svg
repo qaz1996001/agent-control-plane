@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="showcase" data-max-bends-per-edge="2" data-max-total-bends="8" data-max-route-stretch="1.35" data-max-bridged-crossings="0" data-min-node-gap="40.0" data-min-container-gutter="20.0" data-min-label-clearance="4.0" data-min-segment-length="16.0">
+  <defs>
+    <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowB" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrowC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowE" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f97316"/>
+    </marker>
+    <marker id="arrowF" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrowG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+    </marker>
+    <marker id="arrowH" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+    </marker>
+    <filter id="shadowSoft" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <filter id="shadowGlass" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#020617" flood-opacity="0.28"/>
+    </filter>
+    <style>
+    text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', 'Microsoft JhengHei', 'SimHei', sans-serif; }
+    .title { font-size: 30px; font-weight: 700; fill: #111827; }
+    .subtitle { font-size: 14px; font-weight: 500; fill: #6b7280; }
+    .section { font-size: 13px; font-weight: 700; fill: #2563eb; letter-spacing: 1.4px; }
+    .section-sub { font-size: 12px; font-weight: 500; fill: #64748b; }
+    .node-title { font-weight: 700; fill: #111827; }
+    .node-sub { font-weight: 500; fill: #6b7280; }
+    .node-type { font-size: 12px; font-weight: 700; fill: #64748b; letter-spacing: 0.08em; }
+    .arrow-label { font-size: 12px; font-weight: 600; fill: #6b7280; }
+    .legend { font-size: 12px; font-weight: 500; fill: #6b7280; }
+    .footnote { font-size: 12px; font-weight: 500; fill: #64748b; }
+    .metric-label { font-size: 8.5px; font-weight: 700; fill: #64748b; text-transform: uppercase; }
+    .metric-value { font-size: 9.5px; font-weight: 700; fill: #111827; }
+    </style>
+  </defs>
+  <rect data-graph-role="background" width="1000.0" height="560.0" fill="#ffffff"/>
+  <text x="500.0" y="56" text-anchor="middle" class="title">資料流：狀態是唯一的共享面，工具是唯一的對外面</text>
+  <text x="500.0" y="82" text-anchor="middle" class="subtitle">代理之間不直接傳值，只透過 PipelineState；對外一律經 invoke 與白名單</text>
+  <g id="inner" data-graph-role="container" data-container-id="inner" data-semantic-role="boundary" data-graph-bounds="24,88,976,236">
+  <rect data-graph-role="container" x="24.0" y="88.0" width="952.0" height="148.0" rx="16.0" fill="none" stroke="#3b82f6" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="42.0" y="112.0" class="section">狀態面（行程內）</text>
+    <rect id="inner-header" data-graph-role="reserved" data-reserved-kind="container-header" x="32" y="94" width="134" height="30" fill="none" stroke="none"/>
+  </g>
+  <g id="outer" data-graph-role="container" data-container-id="outer" data-semantic-role="boundary" data-graph-bounds="258,276,976,424">
+  <rect data-graph-role="container" x="258.0" y="276.0" width="718.0" height="148.0" rx="16.0" fill="none" stroke="#8b5cf6" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="276.0" y="300.0" class="section">工具面（對外）</text>
+    <rect id="outer-header" data-graph-role="reserved" data-reserved-kind="container-header" x="266" y="282" width="121" height="30" fill="none" stroke="none"/>
+  </g>
+  <path id="d1" data-graph-role="edge" data-edge-id="d1" data-source="payload" data-target="agents" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 238,160 L 278,160" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="d2" data-graph-role="edge" data-edge-id="d2" data-source="agents" data-target="reports" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 508,160 L 548,160" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <path id="d3" data-graph-role="edge" data-edge-id="d3" data-source="reports" data-target="audit" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 778,160 L 818,160" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="d4" data-graph-role="edge" data-edge-id="d4" data-source="agents" data-target="access" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 393,196 L 393,308" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="d5" data-graph-role="edge" data-edge-id="d5" data-source="access" data-target="adapter" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 508,348 L 548,348" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="d6" data-graph-role="edge" data-edge-id="d6" data-source="adapter" data-target="ext" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 778,348 L 818,348" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
+  <g id="node-payload" data-graph-role="node" data-node-id="payload" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="48,124,238,196">
+  <rect x="48.0" y="124.0" width="190.0" height="72.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="payload" data-text-max-width="166.0" x="143.0" y="160.0" text-anchor="middle" class="node-title" font-size="18">payload</text>
+  <text data-text-role="subtitle" data-full-text="ticket / pr 編號" data-text-max-width="166.0" x="143.0" y="182.0" text-anchor="middle" class="node-sub" font-size="12">ticket / pr 編號</text>
+  </g>
+  <g id="node-agents" data-graph-role="node" data-node-id="agents" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="278,124,508,196">
+  <rect x="278.0" y="124.0" width="230.0" height="72.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="2.0" filter="url(#shadowSoft)"/>
+  <rect x="284.0" y="130.0" width="218.0" height="60.0" rx="7.0" fill="none" stroke="#3b82f6" stroke-width="1.2" opacity="0.65"/>
+  <text data-text-role="title" data-full-text="代理節點" data-text-max-width="198.0" x="393.0" y="160.0" text-anchor="middle" class="node-title" font-size="18">代理節點</text>
+  <text data-text-role="subtitle" data-full-text="讀 payload 與前序報告" data-text-max-width="198.0" x="393.0" y="182.0" text-anchor="middle" class="node-sub" font-size="12">讀 payload 與前序報告</text>
+  </g>
+  <g id="node-reports" data-graph-role="node" data-node-id="reports" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="548,124,778,196">
+  <rect x="548.0" y="124.0" width="230.0" height="72.0" rx="10.0" fill="#ffffff" stroke="#334155" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="四個報告欄位" data-text-max-width="206.0" x="663.0" y="160.0" text-anchor="middle" class="node-title" font-size="18">四個報告欄位</text>
+  <text data-text-role="subtitle" data-full-text="各代理只寫自己那一格" data-text-max-width="206.0" x="663.0" y="182.0" text-anchor="middle" class="node-sub" font-size="12">各代理只寫自己那一格</text>
+  </g>
+  <g id="node-audit" data-graph-role="node" data-node-id="audit" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="818,124,952,196">
+  <rect x="818.0" y="124.0" width="134.0" height="72.0" rx="10.0" fill="#e6f4ea" stroke="#1e7e34" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="completed" data-text-max-width="110.0" x="885.0" y="160.0" text-anchor="middle" class="node-title" font-size="18">completed</text>
+  <text data-text-role="subtitle" data-full-text="只增不改" data-text-max-width="110.0" x="885.0" y="182.0" text-anchor="middle" class="node-sub" font-size="12">只增不改</text>
+  </g>
+  <g id="node-access" data-graph-role="node" data-node-id="access" data-semantic-role="hexagon" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="278,308,508,388">
+  <path d="M 300.0 308.0 L 486.0 308.0 L 508.0 348.0 L 486.0 388.0 L 300.0 388.0 L 278.0 348.0 Z" fill="#faf5ff" stroke="#8b5cf6" stroke-width="2.0" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="invoke → ACCESS" data-text-max-width="178.0" x="393.0" y="348.0" text-anchor="middle" class="node-title" font-size="18">invoke → ACCESS</text>
+  <text data-text-role="subtitle" data-full-text="不在白名單即拒絕" data-text-max-width="178.0" x="393.0" y="370.0" text-anchor="middle" class="node-sub" font-size="12">不在白名單即拒絕</text>
+  </g>
+  <g id="node-adapter" data-graph-role="node" data-node-id="adapter" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="548,312,778,384">
+  <rect x="548.0" y="312.0" width="230.0" height="72.0" rx="10.0" fill="#fff7ed" stroke="#f97316" stroke-width="1.8" filter="url(#shadowSoft)"/>
+  <text data-text-role="title" data-full-text="7 個 adapter" data-text-max-width="206.0" x="663.0" y="348.0" text-anchor="middle" class="node-title" font-size="18">7 個 adapter</text>
+  <text data-text-role="subtitle" data-full-text="拋錯收斂成 error 物件" data-text-max-width="206.0" x="663.0" y="370.0" text-anchor="middle" class="node-sub" font-size="12">拋錯收斂成 error 物件</text>
+  </g>
+  <g id="node-ext" data-graph-role="node" data-node-id="ext" data-semantic-role="cylinder" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="818,308,952,388">
+  <ellipse cx="885.0" cy="318.0" rx="67.0" ry="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.2"/>
+  <rect x="818.0" y="318.0" width="134.0" height="60.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.2"/>
+  <ellipse cx="885.0" cy="378.0" rx="67.0" ry="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="2.2"/>
+  <ellipse cx="885.0" cy="338.4" rx="67.0" ry="10.0" fill="none" stroke="#cbd5e1" stroke-opacity="0.45" stroke-width="1.2"/>
+  <ellipse cx="885.0" cy="356.0" rx="67.0" ry="10.0" fill="none" stroke="#cbd5e1" stroke-opacity="0.25" stroke-width="1.2"/>
+  <text data-text-role="title" data-full-text="外部系統" data-text-max-width="110.0" x="885.0" y="342.0" text-anchor="middle" class="node-title" font-size="18">外部系統</text>
+  <text data-text-role="subtitle" data-full-text="Jira / Git / CI" data-text-max-width="110.0" x="885.0" y="366.0" text-anchor="middle" class="node-sub" font-size="12">Jira / Git / CI</text>
+  </g>
+  <g id="legend" data-graph-role="legend">
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="26" y="448" width="406" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="36.0" y1="462.0" x2="66.0" y2="462.0" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="76.0" y="466.0" class="legend">讀</text>
+    <line data-graph-role="decoration" x1="122.0" y1="462.0" x2="152.0" y2="462.0" stroke="#10b981" stroke-width="2.4" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="162.0" y="466.0" class="legend">寫</text>
+    <line data-graph-role="decoration" x1="208.0" y1="462.0" x2="238.0" y2="462.0" stroke="#7c3aed" stroke-width="2.4" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="248.0" y="466.0" class="legend">權限檢查</text>
+    <line data-graph-role="decoration" x1="324.0" y1="462.0" x2="354.0" y2="462.0" stroke="#ef4444" stroke-width="2.4" marker-end="url(#arrowG)"/>
+    <text data-graph-role="decoration" x="364.0" y="466.0" class="legend">稽核軌跡</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="36,512,302,528">
+  <text x="36.0" y="524.0" class="footnote">代理拿不到彼此的內部值，也拿不到白名單外的工具 —— 兩者都是測試斷言的對象</text>
+  </g>
+</svg>

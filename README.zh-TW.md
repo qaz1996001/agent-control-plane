@@ -10,6 +10,8 @@ uv run --with pytest --with langgraph pytest -q      # 44 passed
 
 執行層用 LangGraph（節點執行、checkpoint，以及讓「等人核可」成為真正暫停的 interrupt）。但路由策略是一個吃 state 的普通函式，**不建圖也測得出來**。
 
+程式實際怎麼跑的四個視圖——程式流程、資料流、資料狀態、使用情境——在 [docs/architecture.zh-TW.md](docs/architecture.zh-TW.md)。
+
 領域選的是軟體交付流水線——Ticket → 規劃 → 審查 → 部署——因為在這個領域，「是 Agent 自己決定要部署的」是一句你不會想講出口的話。
 
 ---
