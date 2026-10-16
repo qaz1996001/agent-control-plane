@@ -75,6 +75,88 @@ not consent.
 
 ---
 
+## Running it
+
+```bash
+uv run --with langgraph python examples/run_pipeline.py            # all six
+uv run --with langgraph python examples/run_pipeline.py approve    # just one
+```
+
+Six scenarios, each printing what actually happened:
+
+| scenario | shows |
+|---|---|
+| `approve` | the run pauses, a human approves, and only then does it deploy |
+| `reject`  | declined at the gate -- `deploy` is never called |
+| `ignore`  | resumed with no decision -- still refuses |
+| `rework`  | reviewer sends it back; the loop ends at the step guard |
+| `budget`  | a long response cut mid-stream, then the real count replaces the estimate |
+| `gate`    | a release blocked by the eval gate, then allowed; drift on the same metric |
+
+Abridged output of `approve`:
+
+```
+--------------------------------------------------------------------------
+approve -- a human says yes, and only then does it deploy
+--------------------------------------------------------------------------
+  paused at    ('approval_gate',)          <- the run is stopped, not polling
+  deployed?    False
+
+  ...a reviewer approves in Slack / the web UI...
+
+  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  steps        5 / 8
+  deploy_report {'deployed': True, 'result': {'workflow': 'deploy.yml', 'run_id': 99214, ...}}
+
+  tools called ['read_ticket', 'write_plan', 'read_diff', 'deploy']
+```
+
+And `rework`, where the reviewer keeps rejecting:
+
+```
+  trail        triage -> planner -> reviewer -> planner -> reviewer -> planner
+  steps        6 / 6
+  the loop did not run forever; max_steps decided when to stop
+```
+
+## Operating it for real
+
+`examples/adapters.py` is the integration surface. Every tool there is a
+stub that records the call it would have made, which makes the seams
+countable -- there are seven.
+
+| stub | what replaces it |
+|---|---|
+| `read_ticket`, `label_ticket` | Jira / Linear REST client |
+| `read_diff`, `post_comment` | GitHub / GitLab API |
+| `write_plan`, `read_plan` | your own store -- a table, a wiki page |
+| `deploy` | CI trigger: Actions dispatch, Argo, Jenkins |
+
+Swapping one is a single function; the registry neither knows nor wants to
+know where credentials come from.
+
+**What drives a run.** A webhook maps an inbound event to a `Trigger` and
+calls `invoke` with a thread id -- typically the ticket or PR number, so a
+re-delivered webhook resumes the same run rather than starting a second
+one. The trigger vocabulary is a closed set precisely so that mapping is a
+dictionary you can read, not a prompt.
+
+**Where a human sees the pause.** When a run stops,
+`app.get_state(cfg).next` is `("approval_gate",)` and the state holds the
+reviewing agent's report. That is enough to render a Slack message or a web
+page with the evidence and two buttons; the buttons call `invoke` with
+`Command(update={"human_decision": ...})` on the same thread id. Nothing
+polls, and a pause costs nothing while it waits.
+
+**Three things to change before production.** A durable checkpointer, so a
+pause survives a restart -- `MemorySaver` loses it. Process or container
+isolation for tools, because the allow-list authorises but does not
+contain. And a real scorer behind the eval gate, which currently takes
+metrics as input rather than producing them.
+
+
+---
+
 ## What the tests prove
 
 The tests are the deliverable; the implementation is small on purpose.

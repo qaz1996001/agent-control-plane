@@ -48,6 +48,72 @@ uv run --with pytest --with langgraph pytest -q      # 44 passed
 
 ---
 
+## 怎麼跑
+
+```bash
+uv run --with langgraph python examples/run_pipeline.py            # 六個情境全跑
+uv run --with langgraph python examples/run_pipeline.py approve    # 只跑一個
+```
+
+六個情境，每個都把實際發生的事印出來：
+
+| 情境 | 展示什麼 |
+|---|---|
+| `approve` | 執行暫停、人核可、**然後才**部署 |
+| `reject`  | 在閘門被拒 —— `deploy` 從未被呼叫 |
+| `ignore`  | 不帶決定恢復 —— 一樣拒絕 |
+| `rework`  | 審查退回；迴圈停在步數上限 |
+| `budget`  | 過長的回應在中途被切斷，之後真實用量覆寫估算值 |
+| `gate`    | 發布被評測閘門擋下、修好後放行；同一指標的漂移偵測 |
+
+`approve` 的輸出（節錄）：
+
+```
+--------------------------------------------------------------------------
+approve -- a human says yes, and only then does it deploy
+--------------------------------------------------------------------------
+  paused at    ('approval_gate',)          <- 執行停住了，不是在輪詢
+  deployed?    False
+
+  ...a reviewer approves in Slack / the web UI...
+
+  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  steps        5 / 8
+  deploy_report {'deployed': True, 'result': {'workflow': 'deploy.yml', ...}}
+
+  tools called ['read_ticket', 'write_plan', 'read_diff', 'deploy']
+```
+
+`rework`，審查一直退回的情況：
+
+```
+  trail        triage -> planner -> reviewer -> planner -> reviewer -> planner
+  steps        6 / 6
+  the loop did not run forever; max_steps decided when to stop
+```
+
+## 真的要上線怎麼接
+
+`examples/adapters.py` 就是整合面。裡面每個工具都是會記錄「它本來要呼叫什麼」的 stub，所以**接縫是可以數的——總共七個**。
+
+| stub | 真實環境換成什麼 |
+|---|---|
+| `read_ticket`、`label_ticket` | Jira / Linear REST client |
+| `read_diff`、`post_comment` | GitHub / GitLab API |
+| `write_plan`、`read_plan` | 你自己的儲存——一張表、一個 wiki 頁 |
+| `deploy` | CI 觸發：Actions dispatch、Argo、Jenkins |
+
+換一個就是換一個函式；註冊表不知道、也不需要知道憑證從哪來。
+
+**什麼驅動一次執行。** 一個 webhook 把進來的事件對應成 `Trigger`，然後帶著 thread id 呼叫 `invoke`——thread id 通常就用 ticket 或 PR 編號，這樣**重送的 webhook 會恢復同一次執行，而不是開第二次**。trigger 的詞彙刻意是封閉集合，就是為了讓這個對應是一本讀得懂的字典，而不是一段提示詞。
+
+**人在哪裡看到這個暫停。** 執行停住時，`app.get_state(cfg).next` 是 `("approval_gate",)`，而 state 裡帶著審查代理的報告。這些資訊足以算繪出一則 Slack 訊息或一個網頁，附上證據與兩顆按鈕；按鈕用同一個 thread id 呼叫 `invoke` 並帶上 `Command(update={"human_decision": ...})`。**沒有任何輪詢，而且暫停期間不花成本。**
+
+**上線前要換掉的三件事。** 持久化的 checkpointer，暫停才撐得過重啟——`MemorySaver` 會掉。工具要有行程或容器隔離，因為白名單是授權、不是隔離。還有評測閘門後面要接一個真的計分器，它目前是吃指標、不是產生指標。
+
+
+---
+
 ## 測試證明了什麼
 
 測試才是這個專案的主體，實作刻意寫得很小。
