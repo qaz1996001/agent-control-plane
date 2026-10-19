@@ -53,14 +53,12 @@ class BudgetedStream:
         self.budget = budget
         self.used = 0
         self.settled = False
-        self.emitted: list[str] = []
 
     def __iter__(self):
         for chunk in self._chunks:
             self.used += estimate_tokens(chunk)
             if self.used > self.budget:
                 raise BudgetExceeded(self.used, self.budget)
-            self.emitted.append(chunk)
             yield chunk
 
     def settle(self, provider_tokens: int) -> int:

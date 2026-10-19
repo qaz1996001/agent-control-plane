@@ -9,7 +9,7 @@ is findable by reading a table.
 from agentcp.audit import CallRecord, settle
 from agentcp.budget import BudgetedStream, BudgetExceeded
 from agentcp.drift import DriftVerdict, MetricConfig, detect
-from agentcp.evals import GateResult, GoldenCase, run_gate
+from agentcp.evals import GateResult, run_gate
 from agentcp.graph import DurabilityNotConfigured, build_graph
 from agentcp.privacy import Mapping, RestoreDenied, TraceMismatch, Viewer, mask, restore
 from agentcp.providers import Choice, NoEligibleProvider, Provider, choose
@@ -30,7 +30,7 @@ __all__ = [
     "CallRecord", "settle",
     "BudgetedStream", "BudgetExceeded",
     "DriftVerdict", "MetricConfig", "detect",
-    "GateResult", "GoldenCase", "run_gate",
+    "GateResult", "run_gate",
     "DurabilityNotConfigured", "build_graph",
     "Mapping", "RestoreDenied", "TraceMismatch", "Viewer", "mask", "restore",
     "Choice", "NoEligibleProvider", "Provider", "choose",

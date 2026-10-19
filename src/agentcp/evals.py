@@ -36,15 +36,6 @@ THRESHOLDS: dict[str, float] = {
 UNGATED: frozenset[str] = frozenset({"context_fallback_rate"})
 
 
-@dataclass(frozen=True)
-class GoldenCase:
-    """One benchmark case."""
-
-    case_id: str
-    question: str
-    expected_refs: tuple[str, ...]
-
-
 @dataclass
 class GateResult:
     """Outcome of one gate run, with the policy that produced it.

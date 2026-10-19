@@ -25,7 +25,7 @@ from typing import Callable, Protocol
 from agentcp import privacy, providers, quota, tools
 from agentcp.audit import CallRecord, settle
 from agentcp.budget import BudgetExceeded, BudgetedStream
-from agentcp.state import PipelineState
+from agentcp.state import PROTECTED, PipelineState
 
 #: Chunk size the provider's prose is streamed in. Small enough that the
 #: budget guard bites part-way through a response rather than after it.
@@ -48,6 +48,16 @@ HEALTHY: frozenset[str] = providers.ALL_HEALTHY
 #: answered. Both land in the :class:`~agentcp.audit.CallRecord` and are
 #: stripped from the verdict, so a node's report stays a report.
 _JUDGE_META: frozenset[str] = frozenset({"tokens", "provider"})
+
+#: Dropped from a verdict on the way out. A judge is free to *return*
+#: these -- it is an injected callable and nothing can stop it naming a
+#: control-plane field -- and the graph's guard already means the value
+#: cannot reach state. But the verdict becomes the node's report, and a
+#: report that carries ``human_decision: {"approve": true}`` as inert
+#: payload reads alarming to the next person to open a checkpoint. The
+#: field names are the control plane's, so they do not travel in an
+#: answer.
+_NOT_A_VERDICT: frozenset[str] = PROTECTED | {"next_agent", "requires_approval"}
 
 
 class Judge(Protocol):
@@ -97,14 +107,21 @@ def consult(
     provider's count, charges the tenant's quota and writes one audit
     record -- in that order, every time.
 
-    Refuses in four ways, and all four leave a record: no eligible
-    provider, no tenant quota, no run budget left, and a response the
-    budget cut short. The last two are the same guard at two points. The
-    budget is checked *before* the judge is called, because that is the
-    only moment a refusal still saves money -- a one-shot judge has
-    generated and been billed for its whole answer by the time it
-    returns. Checking again afterwards cannot unspend those tokens, so
-    what it does instead is refuse to *use* a half-finished answer.
+    Refuses in five ways, and all five leave a record: the context is an
+    upstream tool's error, no eligible provider, no tenant quota, no run
+    budget left, and a response the budget cut short. The tool-error case
+    comes first because there is nothing to judge: ``tools.invoke``
+    converts an exception into ``{"error": ...}`` so a broken tool cannot
+    kill a run holding an approval, but that only contains the failure --
+    asking a model to review an error string gets an answer, and the
+    answer reads exactly like a review of a real diff.
+
+    The last two refusals are the same guard at two points. The budget is
+    checked *before* the judge is called, because that is the only moment
+    a refusal still saves money -- a one-shot judge has generated and been
+    billed for its whole answer by the time it returns. Checking again
+    afterwards cannot unspend those tokens, so what it does instead is
+    refuse to *use* a half-finished answer.
 
     Never raises for a refusal. A refused call still produces a record,
     so the ledger shows the attempt; the caller reads ``refused``.
@@ -133,6 +150,13 @@ def consult(
             mapping=mapping,
             refused=reason,
         )
+
+    # Nothing to judge. The tool already degraded into an error object
+    # rather than raising; this is the other half of that bargain --
+    # containing a failure is not the same as proceeding past it.
+    upstream = context.get("error") if isinstance(context, dict) else None
+    if upstream:
+        return refusal(f"upstream tool failed: {upstream}")
 
     try:
         choice = providers.choose(sensitivity, complexity, HEALTHY)
@@ -222,7 +246,8 @@ def consult(
     # call facts live. Leaving them in the verdict would copy them into
     # the node's report as well, where they would be a second, staler
     # answer to a question the ledger already answers.
-    verdict = {k: v for k, v in verdict.items() if k not in _JUDGE_META}
+    verdict = {k: v for k, v in verdict.items()
+               if k not in _JUDGE_META and k not in _NOT_A_VERDICT}
     if "text" in verdict:
         # Only rewrite prose the judge actually returned; a structured
         # answer must not grow a field it never had.
@@ -231,16 +256,24 @@ def consult(
 
 
 def _advance(state: PipelineState, node: str) -> dict:
-    """Common bookkeeping: count the step, append to the audit trail."""
+    """Common bookkeeping: count the step, append to the audit trail.
+
+    ``completed`` carries only this node's name. The append is the
+    reducer's job (``state.PipelineState``), not this function's -- which
+    is the difference between a trail that *is* append-only and one that
+    is append-only because every node remembers to splice rather than
+    assign. ``step_count`` has no reducer and is still computed here,
+    because a counter and a log want different merge rules.
+    """
     return {
         "step_count": state.get("step_count", 0) + 1,
-        "completed": [*state.get("completed", []), node],
+        "completed": [node],
     }
 
 
 def _bill(patch: dict, state: PipelineState, call: Consultation) -> dict:
-    """Append the call record and charge its tokens to the run."""
-    patch["calls"] = [*state.get("calls", []), call.record.as_dict()]
+    """Add the call record to the ledger and charge its tokens to the run."""
+    patch["calls"] = [call.record.as_dict()]
     patch["tokens_used"] = state.get("tokens_used", 0) + call.record.tokens_charged
     return patch
 
