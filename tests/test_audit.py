@@ -1,18 +1,75 @@
+import ast
 import inspect
 
 from langgraph.types import Command
 
-from agentcp import agents, privacy
+from agentcp import agents, privacy, tools
 from agentcp.graph import build_graph
 from agentcp.state import new_state
 
 CFG = {"configurable": {"thread_id": "audit-1"}}
+
+#: Real values planted in a tool's output, so the judge's context and the
+#: checkpoint both have something worth leaking.
+REAL_EMAIL = "sam.okafor@example.com"
+REAL_HOST = "db-prod-3.internal"
 
 
 def run_to_gate(**kw):
     app = build_graph()
     app.invoke(new_state("ticket_opened", {"ticket": 42, "pr": 7}, **kw), CFG)
     return app
+
+
+def plant_pii_in_the_ticket():
+    """Make ``read_ticket`` return PII, the way a real ticket store would.
+
+    The PII enters through the tool rather than through ``payload``,
+    because ``payload`` is caller-supplied identification that is
+    checkpointed verbatim by design -- the masking boundary is the model,
+    not our own datastore.
+    """
+    tools.register(
+        tools.Tool(
+            "read_ticket", "fake read_ticket", {"type": "object"},
+            lambda a: {"title": "login fails",
+                       "body": f"ping {REAL_EMAIL} on {REAL_HOST}"},
+        )
+    )
+
+
+def _everything_in(obj, path="state"):
+    """Yield ``(path, value)`` for *obj* and everything nested inside it."""
+    yield path, obj
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield from _everything_in(v, f"{path}[{k!r}]")
+    elif isinstance(obj, (list, tuple, set, frozenset)):
+        for i, v in enumerate(obj):
+            yield from _everything_in(v, f"{path}[{i}]")
+    elif hasattr(obj, "__dataclass_fields__"):
+        for f in obj.__dataclass_fields__:
+            yield from _everything_in(getattr(obj, f), f"{path}.{f}")
+
+
+def _functions_calling_the_injected_judge(module) -> list[str]:
+    """Names of functions in *module* containing a call to ``judge``.
+
+    An AST walk rather than a substring match, so it sees
+    ``(judge or default)(...)``, a bare ``judge(...)``, and anything else
+    whose callee expression mentions the injected judge.
+    """
+    tree = ast.parse(inspect.getsource(module))
+    found: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for call in (n for n in ast.walk(node) if isinstance(n, ast.Call)):
+            if any(isinstance(x, ast.Name) and x.id == "judge"
+                   for x in ast.walk(call.func)):
+                found.append(node.name)
+                break
+    return found
 
 
 def test_every_model_consulting_node_leaves_exactly_one_record():
@@ -164,32 +221,90 @@ def test_the_judge_only_ever_sees_masked_text():
 
 
 def test_the_unmasking_map_never_reaches_checkpointed_state():
-    """State is persisted; a map of real values in it would undo masking."""
+    """State is persisted; a map of real values in it would undo masking.
+
+    The run really does build such a map -- the ``masked`` flag on its
+    records is the proof, and it is asserted first so this cannot pass by
+    there being nothing to leak. What the assertion then looks for is the
+    map itself, anywhere in the checkpoint: a :class:`privacy.Mapping`,
+    or any dict keyed by the placeholders it hands out.
+    """
+    plant_pii_in_the_ticket()
     app = build_graph()
     cfg = {"configurable": {"thread_id": "audit-leak"}}
-    app.invoke(
-        new_state(
-            "ticket_opened",
-            {"ticket": 42, "pr": 7, "reporter": "sam.okafor@example.com"},
-            trace_id="t-leak",
-        ),
-        cfg,
-    )
-    blob = repr(app.get_state(cfg).values)
-    _, mapping = privacy.mask("sam.okafor@example.com", "t-leak")
-    assert "pairs" not in blob
-    assert not any(k.startswith("<EMAIL") for k in blob.split())
+    app.invoke(new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="t-leak"), cfg)
+    values = app.get_state(cfg).values
 
-
-def test_consult_is_the_only_place_a_judge_is_called():
-    """A second model entry point would bypass mask, budget and audit."""
-    callers = [
-        name
-        for name, fn in vars(agents).items()
-        if callable(fn) and getattr(fn, "__module__", "") == agents.__name__
-        and "(judge or " in inspect.getsource(fn)
+    assert any(c["masked"] for c in values["calls"]), "nothing was masked to leak"
+    leaked = [
+        path
+        for path, obj in _everything_in(values)
+        if isinstance(obj, privacy.Mapping)
+        or (isinstance(obj, dict)
+            and any(privacy.PLACEHOLDER.fullmatch(str(k)) for k in obj))
     ]
-    assert callers == ["consult"]
+    assert leaked == [], leaked
+
+
+def test_the_judge_sees_only_masked_context_for_every_call_in_a_run():
+    """Masking is on the path to the model, not bolted onto one call site.
+
+    Asserted over a whole graph run rather than a direct ``consult``, so
+    it covers every node that consults rather than the one the test
+    happened to pick.
+    """
+    plant_pii_in_the_ticket()
+    seen: list[str] = []
+
+    def spy(prompt, context):
+        seen.append(context["text"])
+        return {"severity": "normal", "approved": True, "comments": [], "text": "ok"}
+
+    build_graph(judge=spy).invoke(
+        new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="t-mask"),
+        {"configurable": {"thread_id": "audit-mask"}},
+    )
+
+    assert len(seen) == 2
+    assert not [t for t in seen if REAL_EMAIL in t or REAL_HOST in t]
+    assert "<EMAIL_1>" in seen[0] and "<HOST_1>" in seen[0]
+
+
+def test_only_consult_contains_a_call_to_the_injected_judge():
+    """A second model entry point would bypass mask, budget and audit."""
+    assert _functions_calling_the_injected_judge(agents) == ["consult"]
+
+
+def test_every_judge_call_in_a_run_went_through_consult():
+    """The source check says where the door is; this says nobody climbed in.
+
+    Counting both sides is the real claim: a node that reached a judge
+    without going through :func:`agents.consult` would make the judge's
+    count exceed the door's.
+    """
+    consults = []
+    judgements = []
+    real_consult = agents.consult
+
+    def counting_consult(*a, **k):
+        consults.append(1)
+        return real_consult(*a, **k)
+
+    def spy(prompt, context):
+        judgements.append(prompt)
+        return {"severity": "normal", "approved": True, "comments": [], "text": "ok"}
+
+    agents.consult = counting_consult
+    try:
+        build_graph(judge=spy).invoke(
+            new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="t-door"),
+            {"configurable": {"thread_id": "audit-door"}},
+        )
+    finally:
+        agents.consult = real_consult
+
+    assert judgements, "the judge was never called, so there is nothing to account for"
+    assert len(judgements) == len(consults)
 
 
 def test_approve_path_records_no_call_for_the_gate_or_deployer():
