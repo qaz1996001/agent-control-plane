@@ -53,13 +53,21 @@ def show(state: dict) -> None:
         # answered. Print both when they differ -- an injected judge may
         # ignore the selection, and reporting the choice as the outcome
         # would make the ledger say something it does not know.
+        #
+        # `masked`/`unmasked` is printed for every call, not only the
+        # masked ones, and borrows the record's own field name so the
+        # line maps onto the `masked:` field a reader goes looking for.
+        # A mark that appeared only when true would leave the other
+        # calls ambiguous: silence would mean both "nothing in this
+        # context needed masking" and "nobody checked".
         parts = []
         for c in calls:
             used = c.get("provider_used")
+            mask = "masked" if c.get("masked") else "unmasked"
+            part = f"{c['agent']}->{c['provider']} {mask}"
             if used and used != c["provider"]:
-                parts.append(f"{c['agent']}->{c['provider']} but answered by {used}")
-            else:
-                parts.append(f"{c['agent']}->{c['provider']}")
+                part += f" but answered by {used}"
+            parts.append(part)
         print(f"  model calls  {len(calls)}  ({', '.join(parts)})")
         settled = sum(1 for c in calls if c.get("tokens_actual") is not None)
         note = f"   ({settled}/{len(calls)} settled against the provider's count)"
