@@ -39,6 +39,13 @@ PATTERNS: tuple[tuple[str, re.Pattern], ...] = (
     ("USER", re.compile(r"@[A-Za-z][\w-]{2,}")),
 )
 
+#: Matches a placeholder this module could have produced. Deleted once as
+#: dead code, which it was until a test needed to walk checkpointed state
+#: looking for a leaked mapping: "no real value escaped" is cheap to assert
+#: and "no placeholder-keyed dict escaped" is the half that catches a map
+#: smuggled out flattened.
+PLACEHOLDER = re.compile(r"<(EMAIL|HOST|USER)_(\d+)>")
+
 class RestoreDenied(PermissionError):
     """The viewer may not see real values behind the placeholders."""
 
