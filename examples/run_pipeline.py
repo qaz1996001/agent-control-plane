@@ -36,6 +36,13 @@ from agentcp.state import new_state
 
 W = 74
 
+#: The judge every graph-building scenario uses. ``None`` means the
+#: deterministic defaults in :mod:`agentcp.agents`. ``--gemma`` replaces it
+#: with the real local model, which is the whole claim put to the test: the
+#: control plane is supposed not to notice which one it got, so the way to
+#: find out is to run all of it both ways and compare.
+JUDGE = None
+
 
 def head(title: str) -> None:
     print(f"\n{'-' * W}\n{title}\n{'-' * W}")
@@ -76,7 +83,7 @@ def show(state: dict) -> None:
 
 def pipeline(thread: str):
     adapters.reset()
-    app = build_graph()
+    app = build_graph(judge=JUDGE)
     cfg = {"configurable": {"thread_id": thread}}
     app.invoke(new_state("ticket_opened", {"ticket": 4821, "pr": 318}, trace_id=thread), cfg)
     return app, cfg
@@ -114,7 +121,13 @@ def scenario_ignore() -> None:
 def scenario_rework() -> None:
     head("rework -- reviewer sends it back; the step guard ends the loop")
     adapters.reset()
-    app = build_graph(judge=lambda prompt, ctx: {"approved": False, "comments": ["add tests"]})
+    # The rejecting judge *is* this scenario: the loop only exists because
+    # the reviewer keeps saying no. Under --gemma the real model decides
+    # instead, and whether the loop happens at all becomes its answer --
+    # which is the more honest demonstration, so it wins.
+    app = build_graph(
+        judge=JUDGE or (lambda prompt, ctx: {"approved": False, "comments": ["add tests"]})
+    )
     cfg = {"configurable": {"thread_id": "rework"}}
     out = app.invoke(
         new_state("ticket_opened", {"ticket": 4821, "pr": 318},
@@ -122,7 +135,21 @@ def scenario_rework() -> None:
         cfg,
     )
     show(out)
-    print("\n  the loop did not run forever; max_steps decided when to stop")
+    looped = out.get("completed", []).count("reviewer") > 1
+    if looped:
+        print()
+        print("  the loop did not run forever; max_steps decided when to stop")
+    else:
+        # Under --gemma the real model approved, so there was no loop to
+        # guard. Saying so is the point: this scenario demonstrates a guard
+        # on a path the judgement chooses, and claiming the guard fired
+        # when it did not is the kind of sentence this repo exists to stop
+        # writing.
+        print()
+        print("  no loop this time -- the reviewer approved, so the run")
+        print(f"  went to the gate and stopped at {out.get('step_count')} of"
+              f" {out.get('max_steps')} steps. The step guard is still there;")
+        print("  nothing asked it to fire.")
 
 
 def scenario_budget() -> None:
@@ -146,7 +173,7 @@ def scenario_budget() -> None:
     print("\n  and in a run, at three budgets:")
     for budget in (6, 12, 2000):
         adapters.reset()
-        app = build_graph()
+        app = build_graph(judge=JUDGE)
         cfg = {"configurable": {"thread_id": f"budget-{budget}"}}
         out = app.invoke(
             new_state("ticket_opened", {"ticket": 4821, "pr": 318},
@@ -165,11 +192,20 @@ def scenario_budget() -> None:
                   f"   {'(the model was never called)' if spent == 0 else '(already spent)'}")
         print(f"               deployed? {out.get('deploy_report', {}).get('deployed', False)}")
 
-    print("\n  budget 6 is the one that saves money: nothing was left, so the")
-    print("  judge was not called at all. At 12 the reviewer's answer was")
-    print("  generated and then refused -- a one-shot model bills for the")
-    print("  whole reply before anything can count it, so that refusal buys")
-    print("  correctness, not credit. Neither run deployed.")
+    # Which of the two refusals a budget gets depends on what the calls
+    # before it cost, so the reading is computed above rather than
+    # asserted here. With the deterministic default, triage's reply is
+    # ~6 tokens and a budget of 12 survives it, so the reviewer is
+    # called and then cut off. With a real model the first call alone
+    # is a few hundred tokens and both small budgets are gone before
+    # the reviewer is reached.
+    print()
+    print("  a refusal before the call is the only one that saves money:")
+    print("  the judge is not reached at all. A refusal after it buys")
+    print("  correctness, not credit -- a one-shot model bills for the whole")
+    print("  reply before anything can count it. Which of the two a given")
+    print("  budget gets depends on what the calls before it cost, which is")
+    print("  why the lines above print the tokens rather than describing them.")
 
 
 def scenario_gate() -> None:
@@ -256,7 +292,7 @@ def scenario_residency() -> None:
     agents.HEALTHY = frozenset({"cloud-small"})
     try:
         adapters.reset()
-        app = build_graph()
+        app = build_graph(judge=JUDGE)
         cfg = {"configurable": {"thread_id": "residency-run"}}
         out = app.invoke(
             new_state("ticket_opened", {"ticket": 4821, "pr": 318},
@@ -284,7 +320,7 @@ def scenario_quota() -> None:
     agents.LEDGER.charge("trial", quota.limit_for("trial"))
     print(f"  tenant       'trial', limit {quota.limit_for('trial')} tokens, already spent")
 
-    app = build_graph()
+    app = build_graph(judge=JUDGE)
     cfg = {"configurable": {"thread_id": "quota"}}
     out = app.invoke(
         new_state("ticket_opened", {"ticket": 4821, "pr": 318},
@@ -320,7 +356,7 @@ def _run_approving(thread: str, judge=None) -> dict:
 
 def scenario_gemma() -> None:
     head("gemma -- a real model judges, and the control plane does not notice")
-    judge = gemma_judge.make_gemma_judge()
+    judge = JUDGE if isinstance(JUDGE, gemma_judge.GemmaJudge) else gemma_judge.make_gemma_judge()
     print(f"  model        {judge.model} via {judge.base_url}")
     print("  loading      (first call pulls ~6.6 GB into memory; give it a minute)")
     try:
@@ -402,8 +438,18 @@ SCENARIOS = {
 }
 
 def main() -> None:
+    global JUDGE
     adapters.register_stubs()
-    wanted = sys.argv[1:] or list(SCENARIOS)
+    args = sys.argv[1:]
+    if "--gemma" in args:
+        args.remove("--gemma")
+        gemma_judge.probe()
+        JUDGE = gemma_judge.make_gemma_judge(verbose=False)
+        print()
+        print(f"  every judgement below is answered by {JUDGE.model}.")
+        print("  `gate` and `mask` build no graph, so they are unchanged --")
+        print("  said here rather than left for the reader to notice.")
+    wanted = args or list(SCENARIOS)
     for name in wanted:
         if name not in SCENARIOS:
             raise SystemExit(f"unknown scenario {name!r}; pick from {list(SCENARIOS)}")
