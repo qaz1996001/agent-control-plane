@@ -7,7 +7,8 @@ can tell from this file alone what any node is allowed to produce.
 
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+import operator
+from typing import Annotated, Literal, TypedDict
 from uuid import uuid4
 
 Trigger = Literal[
@@ -23,6 +24,27 @@ Trigger = Literal[
 ]
 
 Agent = Literal["triage", "planner", "reviewer", "deployer", "approval_gate"]
+
+#: Keys no node may write. Four of them are the run's constraints, fixed
+#: at :func:`new_state`; the fifth is the human's decision, which may only
+#: arrive by resuming an interrupted run.
+#:
+#: This is a list of names because the enforcement is one check at one
+#: place -- :func:`agentcp.graph.build_graph` wraps every node and raises
+#: if a patch names one of these. Before that wrapper existed, every
+#: field here was writable by any node, and "no agent can set
+#: ``human_decision``" was a description of the nodes that happened to
+#: exist rather than a property of the graph. ``agents`` says it plainly:
+#: a rule that every node must remember to follow is a rule that a new
+#: node will not follow.
+#:
+#: ``next_agent`` is deliberately absent. Handing off is what a node is
+#: *for*, so it cannot be protected; the gate is not what stops a node
+#: routing straight to the deployer -- the deployer's own refusal is,
+#: because without a human decision on record there is nothing to act on.
+PROTECTED: frozenset[str] = frozenset(
+    {"human_decision", "max_steps", "sensitivity", "tenant", "trace_id"}
+)
 
 
 class PipelineState(TypedDict, total=False):
@@ -74,13 +96,13 @@ class PipelineState(TypedDict, total=False):
     human_decision: dict | None
     step_count: int
     max_steps: int
-    completed: list[str]
+    completed: Annotated[list[str], operator.add]
     budget_tokens: int
     tokens_used: int
     trace_id: str
     tenant: str
     sensitivity: str
-    calls: list[dict]
+    calls: Annotated[list[dict], operator.add]
 
 
 def new_state(trigger: Trigger, payload: dict | None = None, **kw) -> PipelineState:

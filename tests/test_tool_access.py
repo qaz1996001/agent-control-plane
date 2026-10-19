@@ -3,6 +3,8 @@
 import pytest
 
 from agentcp import agents, tools
+from agentcp.graph import build_graph
+from agentcp.state import new_state
 from agentcp.tools import AccessDenied, ToolNotFound
 
 
@@ -79,3 +81,40 @@ def test_the_deployer_refuses_rather_than_crashing_on_a_tenant_denial():
     patch = agents.deployer_node(state)
     assert patch["deploy_report"]["deployed"] is False
     assert "may not call 'deploy'" in patch["deploy_report"]["reason"]
+
+
+def test_a_tools_error_is_not_handed_to_a_model_as_if_it_were_data(exploding_tool):
+    """Containing a failure is not the same as proceeding past it.
+
+    ``invoke`` converts an exception into ``{"error": ...}`` so a broken
+    tool degrades one step instead of killing a run that may be holding
+    an approval. But nothing read that key, so the error object became
+    the judge's context: asked to review ``error: RuntimeError: ...``,
+    the model answered, the answer looked exactly like a review of a real
+    diff, and the run deployed to production on zero data.
+
+    ``consult`` now refuses first, which is why the spy below is never
+    called at all.
+    """
+    exploding_tool("read_diff")
+    asked = []
+
+    def spy(prompt, context):
+        asked.append(prompt)
+        return {"approved": True, "comments": [], "text": "looks fine"}
+
+    app = build_graph(judge=spy)
+    cfg = {"configurable": {"thread_id": "tool-error"}}
+    out = app.invoke(
+        new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="tool-error"), cfg
+    )
+
+    assert "review diff" not in asked, "the model was asked to judge an error string"
+    assert out["review_report"]["approved"] is False
+    assert "upstream tool failed" in out["review_report"]["refused"]
+    assert "deploy_report" not in out
+    assert app.get_state(cfg).next == ()
+
+    refused = [c for c in out["calls"] if c["refused"]]
+    assert [c["agent"] for c in refused] == ["reviewer"]
+    assert refused[0]["tokens_estimated"] == 0

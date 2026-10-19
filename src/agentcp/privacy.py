@@ -39,10 +39,6 @@ PATTERNS: tuple[tuple[str, re.Pattern], ...] = (
     ("USER", re.compile(r"@[A-Za-z][\w-]{2,}")),
 )
 
-#: Matches a placeholder this module could have produced.
-PLACEHOLDER = re.compile(r"<(EMAIL|HOST|USER)_(\d+)>")
-
-
 class RestoreDenied(PermissionError):
     """The viewer may not see real values behind the placeholders."""
 
