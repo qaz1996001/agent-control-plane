@@ -40,8 +40,11 @@ so the audit trail cannot be rewritten by a later node.
 
 **The tool surface** is one way out. Every call goes through `invoke`,
 which checks the agent against `allowed(agent, tenant)` before the adapter
-runs. An adapter that raises is converted to an error object, so a broken
-integration degrades one step.
+runs. An adapter that raises is converted to an error object, so an
+exception never reaches the graph and a broken integration cannot kill a
+run that is holding an approval. Whether the *step* degrades is the
+caller's half of that bargain, and no caller here inspects the key yet —
+[`errata.md`](errata.md), D4.
 
 **The model surface** is the other, and it is `consult` — the only place
 in the package a `Judge` is called. Masking, provider selection, the

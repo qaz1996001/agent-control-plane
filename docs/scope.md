@@ -32,7 +32,7 @@ fail if the property stops holding.
 | No model is reachable from the routing decision | injected `Judge`, poisoned in the test | `test_routing.py` |
 | A cycle cannot outlast the step guard | fixed precedence in `next_node` | `test_routing.py`, `test_handoff.py` |
 | An agent calls only its own tools | `ACCESS` checked inside `invoke` | `test_tool_access.py` |
-| What is advertised equals what is permitted | `schemas_for` and `invoke` share `allowed()` | `test_tool_access.py` |
+| The two readings of the tool table cannot drift | `schemas_for` and `invoke` share `allowed()` | `test_tool_access.py` |
 | A tenant rule can narrow a role, never widen it | `TENANT_DENY` subtracts from `ACCESS` | `test_tool_access.py` |
 | Nothing deploys without a human | `interrupt_before=["approval_gate"]` | `test_hitl.py` |
 | Absence of a decision is not consent | refusal lives inside the deployer | `test_hitl.py` |

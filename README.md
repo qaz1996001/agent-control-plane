@@ -69,10 +69,17 @@ raises; it does not fall back to a default. A typo that silently routed to
 > loop ends at the step guard. Pinned by `test_routing.py`, `test_handoff.py`.
 
 **Permissions** — `ACCESS` maps agent → allowed tools, checked in `invoke`
-right next to the call. The schemas offered to a model are generated from
-the same table, so what is advertised and what is permitted cannot drift
-apart. A tool that raises is converted to `{"error": ...}` so one bad tool
-degrades a step instead of killing a run that is holding an approval.
+right next to the call. `allowed()` is the single source for two readings
+of that table: `invoke` checks it, `schemas_for` renders it, and a test
+pins that the two agree for every agent and tenant. No node here lets a
+model pick a tool, so the rendering is the seam a tool-calling loop would
+attach to rather than something this pipeline exercises -- the agreement
+is pinned in advance because that is the cheap half. A tool that raises is
+converted to `{"error": ...}`, so an exception never reaches the graph and
+a broken integration cannot kill a run that is holding an approval.
+Whether the *step* degrades is a separate claim and not yet true: no
+caller inspects that key, so the error object travels on as data. See
+[docs/errata.md](docs/errata.md), D4.
 
 > Seen in `approve`, which prints the `tools called` list -- four tools for
 > four agents. Pinned by `test_tool_access.py`.
@@ -490,8 +497,10 @@ production system already behaves this way.
   allow-list. Each node imports the functions it needs, so which tools a
   step may use is a convention about imports rather than a check at the
   call site. `ACCESS` is what that convention looks like once it is written
-  down and enforced — with the schemas offered to a model generated from the
-  same table, so what is advertised and what is permitted cannot drift apart.
+  down and enforced — with the same table generating the schemas a model
+  would be offered, so what is advertised and what is permitted cannot
+  drift apart. Nothing here offers them yet; the agreement is pinned
+  before anything depends on it.
 
 The approval gate, by contrast, *is* a reproduction: same
 `interrupt_before` on the gate node, same `human_decision` carried in

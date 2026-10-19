@@ -45,9 +45,9 @@ flowchart TD
 
 ---
 
-## 2. 權限在呼叫點檢查，而且與「對外宣告」同源
+## 2. 權限在呼叫點檢查，而「將來要對外宣告」的也是同一張表
 
-提示詞寫「不要部署」是一個請求。`ACCESS` 是一個檢查。提供給模型的 schema 由同一張表生成，所以**一個工具不可能被推薦給沒有權限執行它的代理**。
+提示詞寫「不要部署」是一個請求。`ACCESS` 是一個檢查。`allowed()` 是這張表的唯一來源，兩種讀法都從它來——`invoke` 做檢查、`schemas_for` 做算繪——所以**一個工具不可能被推薦給沒有權限執行它的代理**。這個 repo 沒有任何節點讓模型自己挑工具，所以那層算繪是「將來要接 tool-calling」的那道縫；在還沒有人依賴它之前就把一致性釘住，是這件事裡便宜的那一半，也是唯一可移植的那一半。
 
 ```mermaid
 flowchart LR
@@ -71,11 +71,11 @@ flowchart LR
     acc --> S
     acc --> I["invoke(agent, name, args)"]
 
-    S --> M["模型看得到的工具清單"]
+    S --> M["模型將來會看到的工具清單<br/>（目前沒有節點提供）"]
     I --> K{"在白名單內？"}
     K -->|否| DEN["AccessDenied"]
     K -->|是| RUN["執行工具"]
-    RUN -->|拋錯| ERR["{'error': ...}<br/>只降級一步"]
+    RUN -->|拋錯| ERR["{'error': ...}<br/>不會拋進圖裡"]
     RUN -->|正常| OK["結果"]
 
     style DEN fill:#fce8e6,stroke:#a50e0e
@@ -165,7 +165,7 @@ flowchart TD
 | 沒有決定不等於同意 | `test_resuming_with_no_decision_still_refuses_to_deploy` |
 | 審查者不寫 `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
 | 宣告的 schema 等於白名單 | `test_schemas_offered_match_the_allow_list` |
-| 工具拋錯只降級一步 | `test_a_raising_tool_degrades_instead_of_crashing` |
+| 工具拋錯回傳 error 物件，不往外拋 | `test_a_raising_tool_degrades_instead_of_crashing` |
 | 預算在串流中途就咬 | `test_stream_is_cut_mid_way_not_after_the_fact` |
 | 真實用量覆寫估算值 | `test_real_usage_overwrites_the_estimate` |
 | 診斷指標永不擋發布 | `test_the_diagnostic_metric_never_blocks_however_bad` |

@@ -53,11 +53,15 @@ asserts the run still ends.
 
 ---
 
-## 2. Permission is checked at the call, and advertised from the same table
+## 2. Permission is checked at the call, and would be advertised from the same table
 
-A prompt saying "do not deploy" is a request. `ACCESS` is a check. The
-schemas offered to a model are generated from that same table, so a tool
-cannot be advertised to an agent that is forbidden to run it.
+A prompt saying "do not deploy" is a request. `ACCESS` is a check.
+`allowed()` is the single source for both readings of that table —
+`invoke` checks it, `schemas_for` renders it — so a tool cannot be
+advertised to an agent that is forbidden to run it. No node here lets a
+model pick a tool, so the rendering is the seam a tool-calling loop would
+attach to; pinning the agreement before anything depends on it is the
+cheap half of that work, and the only half that transfers.
 
 ```mermaid
 flowchart LR
@@ -81,11 +85,11 @@ flowchart LR
     acc --> S
     acc --> I["invoke(agent, name, args)"]
 
-    S --> M["what the model is offered"]
+    S --> M["what a model would be offered<br/>(no node offers them yet)"]
     I --> K{"on the allow-list?"}
     K -->|no| DEN["AccessDenied"]
     K -->|yes| RUN["tool runs"]
-    RUN -->|raises| ERR["{'error': ...}<br/>one step degrades"]
+    RUN -->|raises| ERR["{'error': ...}<br/>never raises into the graph"]
     RUN -->|returns| OK["result"]
 
     style DEN fill:#fce8e6,stroke:#a50e0e
@@ -198,7 +202,7 @@ not answerable after the fact once the health picture has changed.
 | Absence of a decision is not consent | `test_resuming_with_no_decision_still_refuses_to_deploy` |
 | The reviewer does not write `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
 | Offered schemas equal the allow-list | `test_schemas_offered_match_the_allow_list` |
-| A raising tool degrades one step | `test_a_raising_tool_degrades_instead_of_crashing` |
+| A raising tool returns an error object instead of raising | `test_a_raising_tool_degrades_instead_of_crashing` |
 | The budget bites mid-stream | `test_stream_is_cut_mid_way_not_after_the_fact` |
 | The real count replaces the estimate | `test_real_usage_overwrites_the_estimate` |
 | A diagnostic metric never gates | `test_the_diagnostic_metric_never_blocks_however_bad` |

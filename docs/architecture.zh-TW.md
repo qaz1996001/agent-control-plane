@@ -26,7 +26,7 @@
 
 **狀態面**在行程內。代理之間不互相傳值，而是從 `PipelineState` 讀 `payload` 與前序報告，各自只寫一格 `*_report`。`completed` 與 `calls` 只增不改，所以稽核軌跡不會被後面的節點改寫。
 
-**工具面**是對外出口之一。每次呼叫都經過 `invoke`，在 adapter 執行前先比對 `allowed(agent, tenant)`。adapter 拋錯會被收斂成錯誤物件，所以一個壞掉的整合只降級一個步驟。
+**工具面**是對外出口之一。每次呼叫都經過 `invoke`，在 adapter 執行前先比對 `allowed(agent, tenant)`。adapter 拋錯會被收斂成錯誤物件，所以**例外永遠不會穿透進圖**，一個壞掉的整合也殺不掉一個正握著人工核可的執行。至於「那個步驟會降級」，是這筆交易裡呼叫端要出的那一半，而目前沒有任何呼叫端去看那個 key——見 [`errata.md`](errata.md) 的 D4。
 
 **模型面**是另一個，它就是 `consult`——整個套件裡唯一呼叫 `Judge` 的地方。遮罩、供應商選擇、預算、配額、稽核紀錄全部坐在這一個函式後面，所以它們不是節點需要「記得」的事。多開一個入口會讓以上每一項都變成選配，這就是 `test_consult_is_the_only_place_a_judge_is_called` 存在的理由。
 

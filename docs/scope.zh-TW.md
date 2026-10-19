@@ -20,7 +20,7 @@
 | 路由決策碰不到任何模型 | 注入式 `Judge`，測試裡全部下毒 | `test_routing.py` |
 | 循環贏不過步數上限 | `next_node` 的固定優先序 | `test_routing.py`、`test_handoff.py` |
 | 代理只能呼叫自己的工具 | `invoke` 內檢查 `ACCESS` | `test_tool_access.py` |
-| 「提供的」等於「允許的」 | `schemas_for` 與 `invoke` 共用 `allowed()` | `test_tool_access.py` |
+| 同一張工具表的兩種讀法不會漂移 | `schemas_for` 與 `invoke` 共用 `allowed()` | `test_tool_access.py` |
 | 租戶規則只能收窄角色，不能放寬 | `TENANT_DENY` 對 `ACCESS` 做減法 | `test_tool_access.py` |
 | 沒有人點頭就不會部署 | `interrupt_before=["approval_gate"]` | `test_hitl.py` |
 | 沒有決定不等於同意 | 拒絕寫在 deployer 裡面 | `test_hitl.py` |
