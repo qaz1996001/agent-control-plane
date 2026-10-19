@@ -97,6 +97,15 @@ def consult(
     provider's count, charges the tenant's quota and writes one audit
     record -- in that order, every time.
 
+    Refuses in four ways, and all four leave a record: no eligible
+    provider, no tenant quota, no run budget left, and a response the
+    budget cut short. The last two are the same guard at two points. The
+    budget is checked *before* the judge is called, because that is the
+    only moment a refusal still saves money -- a one-shot judge has
+    generated and been billed for its whole answer by the time it
+    returns. Checking again afterwards cannot unspend those tokens, so
+    what it does instead is refuse to *use* a half-finished answer.
+
     Never raises for a refusal. A refused call still produces a record,
     so the ledger shows the attempt; the caller reads ``refused``.
     """
@@ -133,6 +142,19 @@ def consult(
     if LEDGER.remaining(tenant) <= 0:
         return refusal(f"tenant {tenant!r} has no quota left", choice.provider.name)
 
+    # The only check that can still save money. Past this line the judge
+    # has been called, and a judge that answers in one shot has already
+    # generated -- and been billed for -- every token it is going to.
+    # Counting afterwards can refuse the *answer*; only refusing here
+    # refuses the *spend*.
+    remaining = max(0, state.get("budget_tokens", 0) - state.get("tokens_used", 0))
+    if remaining <= 0:
+        return refusal(
+            f"run has no token budget left ({state.get('tokens_used', 0)}"
+            f"/{state.get('budget_tokens', 0)} used)",
+            choice.provider.name,
+        )
+
     # The judge only ever sees the masked text.
     verdict = (judge or default)(prompt, {"text": masked_blob})
 
@@ -146,7 +168,6 @@ def consult(
         )
     text = str(text)
 
-    remaining = max(0, state.get("budget_tokens", 0) - state.get("tokens_used", 0))
     stream = BudgetedStream(_chunks(text), remaining)
     emitted: list[str] = []
     truncated = False
@@ -178,7 +199,24 @@ def consult(
         LEDGER.charge(tenant, record.tokens_charged)
     except quota.QuotaExceeded as exc:
         refused = str(exc)
+
+    if truncated and not refused:
+        # A truncated judgement is not a judgement. Letting the verdict
+        # through because its structured fields happen to be intact would
+        # accept an answer the model had not finished giving -- and it
+        # would read exactly like one it had. Same reason `restore`
+        # refuses outright rather than restoring the part it can.
+        refused = (
+            f"response cut by the run's token budget at {record.tokens_charged} tokens"
+        )
+
+    if refused:
         record = CallRecord(**{**record.as_dict(), "refused": refused})
+        # One contract for all four refusals: a refused call has no
+        # verdict. The callers check ``refused`` first, but leaving a
+        # usable-looking answer here for them to find anyway is how the
+        # next node ends up using one.
+        return Consultation(verdict={}, record=record, mapping=mapping, refused=refused)
 
     # The meta keys are facts about the *call*, and the record is where
     # call facts live. Leaving them in the verdict would copy them into

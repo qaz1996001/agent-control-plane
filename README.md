@@ -9,7 +9,7 @@ counter, a substitution, a veto and an interrupt — not things a model is
 asked to get right.
 
 ```bash
-uv run --with pytest --with langgraph pytest -q                    # 94 passed
+uv run --with pytest --with langgraph pytest -q                    # 97 passed
 uv run --with langgraph python examples/run_pipeline.py            # 10 scenarios
 ```
 
@@ -81,8 +81,18 @@ degrades a step instead of killing a run that is holding an approval.
 the budget is crossed, mid-stream. It estimates, because it has to decide
 before the provider reports; `settle()` then replaces the estimate with the
 real count so the audit record is not left holding the approximation.
+Crossing the budget is a refusal, not a note in the margin: the run stops
+the same way an exhausted quota stops it, and a cut answer is discarded
+rather than used because its fields happen to have survived.
 
-> Run `budget`. Pinned by `test_budget.py`.
+> Run `budget`, which shows the guard and then what it does to a run at
+> three budget levels. Pinned by `test_budget.py`, `test_audit.py`.
+
+**One thing the budget cannot do**, and the scenario says so: a judge that
+answers in one shot has generated -- and been billed for -- its whole reply
+before anything can count it. Refusing at that point buys correctness, not
+credit. The check that saves money is the one *before* the call, when the
+budget is already gone; the tenant quota is what actually caps spend.
 
 **Approval** — the graph is compiled with
 `interrupt_before=["approval_gate"]`. A run that reaches the gate stops and

@@ -132,6 +132,37 @@ def scenario_budget() -> None:
     stream.settle(27)
     print(f"  provider     {stream.used} tokens   <- real count replaces the estimate")
 
+    # The guard above is the mechanism. What it does to a run is the part
+    # worth showing: the budget refuses, and a refusal ends the run the
+    # same way an exhausted quota does.
+    print("\n  and in a run, at three budgets:")
+    for budget in (6, 12, 2000):
+        adapters.reset()
+        app = build_graph()
+        cfg = {"configurable": {"thread_id": f"budget-{budget}"}}
+        out = app.invoke(
+            new_state("ticket_opened", {"ticket": 4821, "pr": 318},
+                      budget_tokens=budget, trace_id=f"budget-{budget}"),
+            cfg,
+        )
+        if app.get_state(cfg).next:
+            out = app.invoke(Command(update={"human_decision": {"approve": True}}), cfg)
+        stopped = next((c for c in out["calls"] if c["refused"]), None)
+        trail = " -> ".join(out.get("completed", []))
+        print(f"\n  budget {budget:<5} {trail}")
+        if stopped:
+            spent = stopped["tokens_estimated"]
+            print(f"               {stopped['agent']} refused: {stopped['refused']}")
+            print(f"               tokens generated on that call: {spent}"
+                  f"   {'(the model was never called)' if spent == 0 else '(already spent)'}")
+        print(f"               deployed? {out.get('deploy_report', {}).get('deployed', False)}")
+
+    print("\n  budget 6 is the one that saves money: nothing was left, so the")
+    print("  judge was not called at all. At 12 the reviewer's answer was")
+    print("  generated and then refused -- a one-shot model bills for the")
+    print("  whole reply before anything can count it, so that refusal buys")
+    print("  correctness, not credit. Neither run deployed.")
+
 
 def scenario_gate() -> None:
     head("gate -- a release is blocked, fixed, then allowed")

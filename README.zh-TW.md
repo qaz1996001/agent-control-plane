@@ -5,7 +5,7 @@
 一個可以直接執行的小專案，用來示範一個主張：**Agent 的控制平面應該是普通的程式碼。** 路由、權限、預算、遮罩、供應商選擇、人工核可，分別就是一張查找表、一份白名單、一個計數器、一次字串代換、一道否決、一次中斷——不是拿去問模型、期待它每次都答對的東西。
 
 ```bash
-uv run --with pytest --with langgraph pytest -q                    # 94 passed
+uv run --with pytest --with langgraph pytest -q                    # 97 passed
 uv run --with langgraph python examples/run_pipeline.py            # 10 個情境
 ```
 
@@ -51,9 +51,11 @@ uv run --with langgraph python examples/run_pipeline.py            # 10 個情�
 
 > 在 `approve` 裡看得到：它會印出 `tools called` 清單——四個代理、四個工具。由 `test_tool_access.py` 釘住。
 
-**預算** — `BudgetedStream` 逐塊計數，一跨過預算就在**串流中途**拋錯。它用估算，因為它必須在真實用量回來之前就做決定；`settle()` 之後再用供應商的真實數字覆寫，稽核紀錄不會停留在那個近似值上。
+**預算** — `BudgetedStream` 逐塊計數，一跨過預算就在**串流中途**拋錯。它用估算，因為它必須在真實用量回來之前就做決定；`settle()` 之後再用供應商的真實數字覆寫，稽核紀錄不會停留在那個近似值上。**跨過預算是一次拒絕，不是備註**：執行會像配額用盡那樣停住，而被切斷的答案會被丟棄、不會因為「欄位剛好還在」就被採用。
 
-> 跑 `budget`。由 `test_budget.py` 釘住。
+> 跑 `budget`：它先示範守衛本身，再示範在三種預算下對一次執行做了什麼。由 `test_budget.py`、`test_audit.py` 釘住。
+
+**預算做不到的那件事**，情境裡也寫明了：一次把答案給完的 judge，在任何東西能開始計數之前，就已經生成並被計費了整份回覆。在那個時間點拒絕買到的是**正確性，不是額度**。真正省到錢的是**呼叫之前**那道檢查——預算已經見底的時候；而真正能限制花費的是租戶配額。
 
 **核可** — graph 以 `interrupt_before=["approval_gate"]` 編譯。執行走到閘門就停住並存檔。在有人帶著決定恢復它之前，什麼都不會部署；而**帶著「沒有決定」恢復一樣會拒絕**——沒有決定不等於同意。
 

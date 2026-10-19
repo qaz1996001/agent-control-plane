@@ -73,6 +73,61 @@ def test_a_response_cut_by_the_budget_still_leaves_a_record():
     assert call.record.tokens_estimated > 0
 
 
+def test_a_cut_response_is_refused_not_used():
+    """A truncated judgement is not a judgement.
+
+    Its structured fields survive the cut, so nothing stops the verdict
+    being used -- except this. An answer the model had not finished
+    giving reads exactly like one it had.
+    """
+    state = new_state("ticket_opened", {"ticket": 1}, budget_tokens=2, trace_id="t-1")
+    call = agents.consult(
+        state, "triage", "p", {"a": "x"},
+        lambda prompt, ctx: {"severity": "critical", "text": "z" * 400},
+        agents._default_severity,
+    )
+    assert call.record.truncated is True
+    assert call.refused
+    assert call.verdict == {}   # refused means there is no answer to use
+
+
+def test_an_exhausted_budget_refuses_before_the_judge_is_called():
+    """The only refusal that saves money, so it has to come first.
+
+    A one-shot judge has generated and been billed for its whole answer
+    by the time it returns. Refusing afterwards refuses the answer;
+    refusing here refuses the spend.
+    """
+    called = []
+    state = new_state(
+        "ticket_opened", {"ticket": 1},
+        budget_tokens=10, tokens_used=10, trace_id="t-1",
+    )
+    call = agents.consult(
+        state, "triage", "p", {"a": "x"},
+        lambda prompt, ctx: called.append(1) or {"text": "never generated"},
+        agents._default_severity,
+    )
+    assert called == []
+    assert "no token budget left" in call.refused
+    assert call.record.tokens_estimated == 0
+    assert call.record.truncated is False
+
+
+def test_a_budget_refusal_stops_the_run_rather_than_deploying():
+    app = build_graph()
+    cfg = {"configurable": {"thread_id": "audit-budget"}}
+    out = app.invoke(
+        new_state("ticket_opened", {"ticket": 42, "pr": 7},
+                  budget_tokens=1, trace_id="t-budget"),
+        cfg,
+    )
+    assert out["triage_report"]["severity"] == "unknown"
+    assert "budget" in out["triage_report"]["refused"]
+    assert "deploy_report" not in out
+    assert app.get_state(cfg).next == ()
+
+
 def test_a_refused_call_still_leaves_a_record():
     state = new_state("ticket_opened", {"ticket": 1}, sensitivity="restricted", trace_id="t-1")
     original = agents.HEALTHY
