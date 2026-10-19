@@ -121,6 +121,64 @@ And `rework`, where the reviewer keeps rejecting:
   the loop did not run forever; max_steps decided when to stop
 ```
 
+### Optional: a real model in the judgement seam
+
+The six scenarios above need no model and no network. A seventh, `gemma`,
+runs the same pipeline as `approve` with a real model doing the judging --
+Gemma 4 E4B on a local Ollama:
+
+```bash
+ollama pull gemma4:e4b                                           # ~6.6 GB
+uv run --with langgraph python examples/run_pipeline.py gemma
+```
+
+It is excluded from the default run, and if the model is not there the
+scenario says so and skips rather than failing.
+
+The adapter is [`examples/gemma_judge.py`](examples/gemma_judge.py), about
+200 lines of standard library -- there is no new dependency, because
+`Judge` is `(prompt, context) -> dict` and that is the entire contract.
+**The adapter lives in `examples/`, not in `src/agentcp`, deliberately.**
+A provider import under `src/` would retract the claim the test suite makes
+about the control plane; the model belongs with the other integration seams
+in `adapters.py`.
+
+Abridged output, with Gemma 4 E4B actually answering:
+
+```
+  model said  '{"severity": "critical"}'
+  model said  '{"approved": true, "comments": ["Small, focused change across
+                only two files. Looks ready to merge."]}'
+
+  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  steps        5 / 8
+
+  severity     'normal' (default)  ->  'critical' (Gemma)
+  same trail?  True        <- routing is code, not a prompt
+  same steps?  5 vs 5
+  deployed?    True         <- still only because a human said yes
+
+  model calls  2
+  rejected     0   every reply matched the schema
+```
+
+The model disagreed with the default about severity -- a 500 on login is
+indeed not `normal` -- and the route did not change by one step, because
+nothing asked it to.
+
+Two things the scenario is built to show:
+
+- **It runs the pipeline twice** -- once with the deterministic default,
+  once with Gemma -- and compares. The trail and the step count are
+  identical; only the content of the judgement changes. Routing is a lookup
+  table either way.
+- **The reply is type-checked at the boundary.** The two call sites have
+  known output shapes, so they are sent as a JSON schema and the answer is
+  validated against it. A severity outside the enum, a non-boolean verdict,
+  an empty reply: rejected, counted, and replaced with the default. The step
+  degrades; the route does not move. That is the difference between a model
+  deciding *inside* a step and a model deciding *between* steps.
+
 ## Operating it for real
 
 `examples/adapters.py` is the integration surface. Every tool there is a
@@ -218,11 +276,13 @@ The tests are the deliverable; the implementation is small on purpose.
 
 ## Limitations
 
-- **No real model is called.** Judgement points are injected callables with
-  deterministic fakes. That keeps the suite offline and makes the
-  "no model in the control plane" test meaningful, but it means nothing
-  here exercises prompt behaviour, token accounting against a real
-  tokenizer, or provider failure modes.
+- **No real model is called by the test suite.** Judgement points are
+  injected callables with deterministic fakes. That keeps the suite offline
+  and makes the "no model in the control plane" test meaningful. The
+  `gemma` scenario does call a real local model, but it is a demonstration
+  of the seam, not coverage: nothing here exercises token accounting
+  against a real tokenizer, or provider failure modes beyond "unreachable"
+  and "malformed reply".
 - **In-memory checkpointing.** `MemorySaver` is enough to show
   interrupt/resume; a real deployment needs a durable checkpointer for a
   pause to survive a restart.

@@ -11,6 +11,11 @@ ignore    resumed with no decision at all -- still nothing deploys
 rework    the reviewer sends it back; the loop ends at the step guard
 budget    an over-long model response is cut off mid-stream
 gate      a release is blocked by the eval gate, then allowed
+gemma     the same run as `approve`, with a real local model judging
+
+The first six need no model and no network. `gemma` does: it wants a local
+Ollama serving Gemma 4 E4B (`ollama pull gemma4:e4b`), and it is excluded
+from the default run for that reason.
 """
 
 from __future__ import annotations
@@ -20,6 +25,7 @@ import sys
 from langgraph.types import Command
 
 import adapters
+import gemma_judge
 from agentcp import drift, evals
 from agentcp.budget import BudgetedStream, BudgetExceeded
 from agentcp.graph import build_graph
@@ -126,6 +132,84 @@ def scenario_gate() -> None:
         print(f"  drift @{current:<5} {v.status:<18} z={v.z if v.z is None else round(v.z, 2)}")
 
 
+def _run_approving(thread: str, judge=None) -> dict:
+    """Drive one run, approving at the gate if it gets that far.
+
+    It may not: a judge that rejects the diff sends the run back to the
+    planner and it ends at the step guard with no gate to approve at. That
+    is a legitimate outcome, so this checks for a pending interrupt rather
+    than assuming one.
+    """
+    adapters.reset()
+    app = build_graph(judge=judge)
+    cfg = {"configurable": {"thread_id": thread}}
+    out = app.invoke(new_state("ticket_opened", {"ticket": 4821, "pr": 318}), cfg)
+    if app.get_state(cfg).next:
+        out = app.invoke(Command(update={"human_decision": {"approve": True}}), cfg)
+    return out
+
+
+def scenario_gemma() -> None:
+    head("gemma -- a real model judges, and the control plane does not notice")
+    judge = gemma_judge.make_gemma_judge()
+    print(f"  model        {judge.model} via {judge.base_url}")
+    print("  loading      (first call pulls ~6.6 GB into memory; give it a minute)")
+    try:
+        gemma_judge.probe(model=judge.model, base_url=judge.base_url)
+    except gemma_judge.OllamaUnavailable as exc:
+        print(f"  skipped      {exc}")
+        return
+    print("  loaded       ok\n")
+
+    try:
+        offline = _run_approving("gemma-offline")
+        live = _run_approving("gemma-live", judge=judge)
+    except gemma_judge.OllamaUnavailable as exc:
+        # Reachable at probe time, gone by the time a node asked. Worth a
+        # clean message: a run that dies mid-graph is exactly the failure
+        # the interrupt/checkpoint machinery exists to survive.
+        print(f"\n  aborted      the model became unavailable mid-run: {exc}")
+        return
+
+    print("\n  with the model:")
+    show(live)
+
+    verdict = live.get("review_report", {})
+    print(f"\n  severity     {offline['triage_report']['severity']!r} (default)"
+          f"  ->  {live['triage_report']['severity']!r} (Gemma)")
+    print(f"  approved     {verdict.get('approved')!r}")
+    print(f"  comments     {verdict.get('comments')}")
+
+    same_trail = offline.get("completed") == live.get("completed")
+    print(f"\n  same trail?  {same_trail}", end="")
+    if same_trail:
+        print("        <- routing is code, not a prompt")
+    else:
+        # Not a failure. The reviewer is *allowed* to send a PR back; what
+        # matters is that the route it took is one the table permits, chosen
+        # by `router.route`, not by the model.
+        print(f"\n               default: {' -> '.join(offline.get('completed', []))}")
+        print(f"               Gemma:   {' -> '.join(live.get('completed', []))}")
+        print("               Gemma rejected the diff, so the reviewer sent it")
+        print("               back -- an edge the route table already has.")
+    print(f"  same steps?  {offline.get('step_count')} vs {live.get('step_count')}")
+
+    deployed = live.get("deploy_report", {}).get("deployed")
+    if deployed is None:
+        print("  deployed?    never reached the deployer")
+    else:
+        print(f"  deployed?    {deployed}         <- still only because a human said yes")
+
+    print(f"\n  model calls  {judge.calls}")
+    if judge.fallbacks:
+        print(f"  rejected     {len(judge.fallbacks)} reply/replies failed validation:")
+        for reason in judge.fallbacks:
+            print(f"                 {reason}")
+        print("               the step degraded to a default; the route did not move")
+    else:
+        print("  rejected     0   every reply matched the schema")
+
+
 SCENARIOS = {
     "approve": scenario_approve,
     "reject": scenario_reject,
@@ -133,12 +217,16 @@ SCENARIOS = {
     "rework": scenario_rework,
     "budget": scenario_budget,
     "gate": scenario_gate,
+    "gemma": scenario_gemma,
 }
+
+#: Run by default. `gemma` is left out because it needs a local model server.
+OFFLINE = [n for n in SCENARIOS if n != "gemma"]
 
 
 def main() -> None:
     adapters.register_stubs()
-    wanted = sys.argv[1:] or list(SCENARIOS)
+    wanted = sys.argv[1:] or OFFLINE
     for name in wanted:
         if name not in SCENARIOS:
             raise SystemExit(f"unknown scenario {name!r}; pick from {list(SCENARIOS)}")

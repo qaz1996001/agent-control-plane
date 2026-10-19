@@ -94,6 +94,56 @@ approve -- a human says yes, and only then does it deploy
   the loop did not run forever; max_steps decided when to stop
 ```
 
+### 選用：把真的模型插進判斷的那個縫
+
+上面六個情境不需要模型、不需要網路。第七個情境 `gemma` 跑的是和 `approve`
+完全相同的流程，只是判斷由真的模型來做——本地 Ollama 上的 Gemma 4 E4B：
+
+```bash
+ollama pull gemma4:e4b                                           # 約 6.6 GB
+uv run --with langgraph python examples/run_pipeline.py gemma
+```
+
+它不在預設執行清單裡；模型沒裝的話情境會說明原因並跳過，而不是爆掉。
+
+接法在 [`examples/gemma_judge.py`](examples/gemma_judge.py)，約 200 行、
+全部用標準庫——**沒有新增任何依賴**，因為 `Judge` 就是
+`(prompt, context) -> dict`，契約只有這樣。
+**adapter 刻意住在 `examples/`，不在 `src/agentcp` 裡。**
+在 `src/` 下 import 一個供應商，等於把測試對控制平面做出的那個斷言撤回；
+模型應該和 `adapters.py` 裡其他的整合縫放在一起。
+
+實際由 Gemma 4 E4B 作答的輸出（節錄）：
+
+```
+  model said  '{"severity": "critical"}'
+  model said  '{"approved": true, "comments": ["Small, focused change across
+                only two files. Looks ready to merge."]}'
+
+  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  steps        5 / 8
+
+  severity     'normal' (default)  ->  'critical' (Gemma)
+  same trail?  True        <- routing is code, not a prompt
+  same steps?  5 vs 5
+  deployed?    True         <- still only because a human said yes
+
+  model calls  2
+  rejected     0   every reply matched the schema
+```
+
+模型對嚴重度的判斷和預設值不同——登入噴 500 確實不該是 `normal`——
+而路徑一步都沒變，因為沒有任何地方把路徑交給它決定。
+
+這個情境特意要展示兩件事：
+
+- **它把流程跑兩次**——一次用確定性預設值、一次用 Gemma——然後比對。
+  路徑與步數完全相同，改變的只有判斷的**內容**。路由兩種情況下都是一張查找表。
+- **模型的回覆在邊界被型別檢查。** 兩個呼叫點的輸出形狀是已知的，所以直接以
+  JSON schema 送出去、再拿回來驗證。嚴重度不在列舉內、verdict 不是布林、
+  回覆是空的：一律拒收、計數、換成預設值。**降級的是那個步驟，路徑不會動。**
+  這就是「模型在步驟*裡面*做判斷」與「模型決定步驟*之間*怎麼走」的差別。
+
 ## 真的要上線怎麼接
 
 `examples/adapters.py` 就是整合面。裡面每個工具都是會記錄「它本來要呼叫什麼」的 stub，所以**接縫是可以數的——總共七個**。
@@ -169,7 +219,7 @@ approve -- a human says yes, and only then does it deploy
 
 寫出來是因為一個藏起邊界的示範沒有用。
 
-- **沒有真的呼叫模型。** 需要判斷的點是可注入的 callable，測試用確定性假物件。這讓整套測試離線可跑、也讓「控制平面沒有模型」那條測試有意義，但代價是這裡完全沒有驗證提示詞行為、真實 tokenizer 的計數、或供應商的故障模式。
+- **測試不會真的呼叫模型。** 需要判斷的點是可注入的 callable，測試用確定性假物件。這讓整套測試離線可跑、也讓「控制平面沒有模型」那條測試有意義。`gemma` 情境確實會呼叫本地的真模型，但那是**示範那個縫**，不是測試覆蓋：這裡沒有驗證真實 tokenizer 的計數，供應商的故障模式也只處理了「連不上」與「回覆格式錯」兩種。
 - **checkpoint 只在記憶體裡。** `MemorySaver` 足以展示 interrupt／resume；真實部署需要持久化的 checkpointer，暫停才撐得過重啟。
 - **沒有沙箱。** 工具在同一個行程裡執行。真實的 Agent 執行環境需要行程或容器隔離加上網路政策；這裡的白名單是**授權模型，不是隔離機制**。
 - **評測閘門沒有計分器。** 它吃指標、做判斷。從 golden 題庫對真實系統算出那些數字才是比較大的那一半，不在範圍內。
