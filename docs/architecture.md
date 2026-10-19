@@ -63,10 +63,13 @@ Source: [`state.py`](../src/agentcp/state.py), [`tools.py`](../src/agentcp/tools
 
 Each of the 18 fields has one writer, and the diagram names it.
 
-The row that matters is `human_decision`: it is writable only by resuming
-an interrupted run. No agent can set it, which is what makes "the reviewer
-cannot approve on the human's behalf" a structural property rather than a
-convention.
+The row that matters is `human_decision`: the only thing that writes it
+today is a resume carrying a decision, and no node writes it. That is a
+convention of the nodes, not yet a property of the state — `PipelineState`
+is a bare `TypedDict` and `graph.py` merges a node's patch into state
+unchanged, so a node that returned `human_decision` would forge a human
+approval and nothing would reject it. The gap, and the reducer that is to
+close it, are entry A1 in [`errata.md`](errata.md).
 
 Four fields are set once at `new_state` and only read afterwards —
 `trace_id`, `tenant`, `sensitivity`, `max_steps`. They are the run's

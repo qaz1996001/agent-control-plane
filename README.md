@@ -334,8 +334,10 @@ The tests are the deliverable; the implementation is small on purpose.
   `deploy_report` exists yet
 - Approve → deploys; reject → finishes without deploying, with a reason
 - **Resuming with no decision still refuses**
-- A machine-approved review sets `requires_approval` and never writes
-  `human_decision` — the reviewer cannot approve on the human's behalf
+- A machine-approved review sets `requires_approval` and does not write
+  `human_decision` — so the reviewer does not approve on the human's
+  behalf. The state type does not yet stop a node that tries; see
+  [docs/errata.md](docs/errata.md)
 
 **Hand-off** (`test_handoff.py`)
 - Each agent writes exactly one `*_report` key and no other agent's

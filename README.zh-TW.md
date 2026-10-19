@@ -230,7 +230,7 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 - 執行是真的停住：`snapshot.next == ("approval_gate",)` 且此時還沒有 `deploy_report`
 - 核可 → 部署；拒絕 → 結束但不部署，並寫明原因
 - **不帶決定恢復，照樣拒絕部署**
-- 機器判定通過的審查只會設 `requires_approval`，**永遠不會寫 `human_decision`** —— 審查者不能代替人核可
+- 機器判定通過的審查只會設 `requires_approval`，**不會寫 `human_decision`** —— 所以審查者沒有代替人核可。state 型別目前還擋不住一個偏要寫的節點，見 [docs/errata.md](docs/errata.md)
 
 **交棒**（`test_handoff.py`）
 - 每個代理只寫自己那一個 `*_report`，不碰別人的

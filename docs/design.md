@@ -196,7 +196,7 @@ not answerable after the fact once the health picture has changed.
 | The step guard beats a hand-off and an approval | `test_step_budget_outranks_a_pending_handoff` |
 | The run genuinely pauses at the gate | `test_run_actually_stops_at_the_gate` |
 | Absence of a decision is not consent | `test_resuming_with_no_decision_still_refuses_to_deploy` |
-| The reviewer cannot self-approve | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
+| The reviewer does not write `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
 | Offered schemas equal the allow-list | `test_schemas_offered_match_the_allow_list` |
 | A raising tool degrades one step | `test_a_raising_tool_degrades_instead_of_crashing` |
 | The budget bites mid-stream | `test_stream_is_cut_mid_way_not_after_the_fact` |
