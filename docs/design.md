@@ -36,7 +36,8 @@ flowchart TD
 
     G -.->|"interrupt_before:<br/>run stops and is checkpointed"| H(["waiting for a human"])
     H -->|"resume with approve=True"| D
-    H -->|"resume with approve=False<br/>or with nothing"| E3(["END — no deploy"])
+    H -->|"resume with approve=False<br/>or with nothing"| D
+    D -.->|"no approval on record"| E3(["END — the deployer refused"])
 
     style X fill:#fce8e6,stroke:#a50e0e
     style H fill:#fff7ed,stroke:#f97316
@@ -46,6 +47,12 @@ flowchart TD
 
 The dashed edge is the only place the system waits for a person, and it is
 enforced by the runtime rather than by a node remembering to check.
+
+Both resume paths run the deployer; the refusal lives *inside* it. That is
+why "resume with nothing" cannot deploy — there is no separate decline
+branch to get wrong — and it is also why `approval_gate` decides nothing:
+it does not read `human_decision` at all, it clears the pending flag and
+returns. A rejection is declined by the deployer, not at the gate.
 
 **Precedence matters, and is tested:** `test_step_budget_outranks_a_pending_handoff`
 sets `next_agent` *and* `requires_approval` on an over-budget state and

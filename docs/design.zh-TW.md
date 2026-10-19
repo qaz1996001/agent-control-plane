@@ -31,7 +31,8 @@ flowchart TD
 
     G -.->|"interrupt_before：<br/>執行停住並存檔"| H(["等待人工"])
     H -->|"帶 approve=True 恢復"| D
-    H -->|"帶 approve=False<br/>或什麼都不帶"| E3(["END —— 不部署"])
+    H -->|"帶 approve=False<br/>或什麼都不帶"| D
+    D -.->|"沒有核可紀錄"| E3(["END —— deployer 拒絕"])
 
     style X fill:#fce8e6,stroke:#a50e0e
     style H fill:#fff7ed,stroke:#f97316
@@ -40,6 +41,8 @@ flowchart TD
 ```
 
 虛線是整個系統唯一會等人的地方，而且是由執行層強制，不是靠某個節點記得要檢查。
+
+**兩條恢復的路最後都會跑到 deployer，拒絕的判斷在它裡面。** 這就是為什麼「什麼都不帶就恢復」部署不了——根本沒有一條獨立的拒絕分支可以寫錯；也是為什麼 `approval_gate` 其實什麼都沒決定：它連 `human_decision` 都不讀，只把待核可的旗標清掉就返回。**拒絕是 deployer 做的，不是在閘門做的。**
 
 **優先序本身是被測的**：`test_step_budget_outranks_a_pending_handoff` 在一個已超過步數上限的狀態上**同時**設了 `next_agent` 和 `requires_approval`，斷言執行仍然結束。
 

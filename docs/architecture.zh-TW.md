@@ -38,7 +38,7 @@
 
 ![資料狀態](state.svg)
 
-18 個欄位，每一格都只有一個寫入者，圖上把它標出來。
+總共 18 個欄位。「只有一個寫入者」對四格 `*_report` 與 `human_decision` 成立，對其餘的不成立：`next_agent` 由四個節點寫，`step_count` 與 `completed` 由五個寫（每個節點都經過 `_advance`），`calls` 與 `tokens_used` 由兩個寫，`requires_approval` 也是兩個——審查者設起來、閘門清掉。而圖是把這些歸在「節點寫入」底下，沒有逐格指名，所以它標出的是一個欄位**什麼時候**被寫，不是被誰寫。
 
 **`human_decision` 那一列是重點**：目前會寫它的只有「帶著決定恢復一個被中斷的執行」，而且沒有任何節點寫它。但那是節點的慣例，還不是 state 的性質——`PipelineState` 是裸 `TypedDict`，`graph.py` 把節點的 patch 原封不動併進 state，所以一個把 `human_decision` 放進自己 patch 的節點就偽造了一次人工核可，而沒有任何東西會退回它。這個缺口與打算用來補它的 reducer，記在 [`errata.md`](errata.md) 的 A1。
 

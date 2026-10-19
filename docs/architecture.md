@@ -64,7 +64,13 @@ Source: [`state.py`](../src/agentcp/state.py), [`tools.py`](../src/agentcp/tools
 
 ![state lifecycle](state.svg)
 
-Each of the 18 fields has one writer, and the diagram names it.
+There are 18 fields. One writer each holds for the four `*_report` slots
+and for `human_decision`; it does not hold for the rest. `next_agent` is
+written by four nodes, `step_count` and `completed` by five (every node
+goes through `_advance`), `calls` and `tokens_used` by two, and
+`requires_approval` by two — the reviewer sets it and the gate clears it.
+The diagram groups those under "written by nodes" rather than naming each,
+so it shows *when* a field is written rather than by whom.
 
 The row that matters is `human_decision`: the only thing that writes it
 today is a resume carrying a decision, and no node writes it. That is a

@@ -87,7 +87,7 @@ uv run --with langgraph python examples/run_pipeline.py approve    # 只跑一�
 | 情境 | 展示什麼 |
 |---|---|
 | `approve` | 執行暫停、人核可、**然後才**部署 |
-| `reject`  | 在閘門被拒 —— `deploy` 從未被呼叫 |
+| `reject`  | 人工拒絕 —— deployer 拒絕執行，`deploy` 從未被呼叫 |
 | `ignore`  | 不帶決定恢復 —— 一樣拒絕 |
 | `rework`  | 審查退回；迴圈停在步數上限 |
 | `budget`  | 過長的回應在中途被切斷，之後真實用量覆寫估算值 |

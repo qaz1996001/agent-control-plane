@@ -8,7 +8,7 @@
  "width": 1200,
  "height": 760,
  "title": "資料狀態：PipelineState 的生命週期",
- "subtitle": "18 個欄位，每一格都有明確的寫入者；human_decision 目前只有 resume 寫得到",
+ "subtitle": "18 個欄位，依「什麼時候被寫」分組；human_decision 目前只有 resume 寫得到",
  "containers": [
   {
    "id": "fields",
@@ -103,8 +103,8 @@
    "y": 262,
    "width": 488,
    "height": 100,
-   "label": "節點寫入",
-   "sublabel": "四個 report, next_agent, step_count, completed, calls, tokens_used",
+   "label": "節點寫入（分組，非逐格指名）",
+   "sublabel": "四個 report 各一個寫入者；next_agent 四個、step_count/completed 五個、calls/tokens_used 兩個",
    "fill": "#eff6ff",
    "stroke": "#3b82f6"
   },

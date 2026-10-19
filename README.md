@@ -167,7 +167,7 @@ Ten scenarios, each printing what actually happened:
 | scenario | shows |
 |---|---|
 | `approve` | the run pauses, a human approves, and only then does it deploy |
-| `reject`  | declined at the gate -- `deploy` is never called |
+| `reject`  | a human declines -- the deployer refuses, `deploy` is never called |
 | `ignore`  | resumed with no decision -- still refuses |
 | `rework`  | reviewer sends it back; the loop ends at the step guard |
 | `budget`  | a long response cut mid-stream, then the real count replaces the estimate |
