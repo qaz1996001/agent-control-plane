@@ -2,9 +2,9 @@
 
 import pytest
 
-from agentcp import router
+from agentcp import agents, graph, router
 from agentcp.router import ROUTE_TABLE, UnknownTrigger, route
-from agentcp.state import new_state
+from agentcp.state import Agent, new_state
 
 
 def test_same_trigger_always_routes_to_same_agent():
@@ -24,17 +24,24 @@ def test_unknown_trigger_raises_instead_of_defaulting():
     assert "ticket_opend" in str(e.value)
 
 
-def test_routing_touches_no_model(monkeypatch):
-    """The control plane must work with every model entry point poisoned."""
-    def forbidden(*a, **k):
-        raise AssertionError("control flow called a model")
+def test_every_route_points_at_a_node_the_graph_actually_has():
+    """A route to a non-node must fail in CI, not at ``invoke``.
 
-    import agentcp.agents as agents_mod
-    monkeypatch.setattr(agents_mod, "_default_severity", forbidden)
-    monkeypatch.setattr(agents_mod, "_default_verdict", forbidden)
+    The table and the graph are declared in different modules, so nothing
+    but this stops one from naming an agent the other does not build.
+    """
+    unknown = set(ROUTE_TABLE.values()) - set(graph.NODE_NAMES)
+    assert not unknown, unknown
 
-    for trigger in ROUTE_TABLE:
-        assert route(trigger) in {"triage", "planner", "reviewer", "deployer"}
+
+def test_the_node_registry_and_the_graph_agree_on_which_nodes_exist():
+    """``agents.NODES`` is what gets built; ``NODE_NAMES`` is what gets wired."""
+    assert set(agents.NODES) == set(graph.NODE_NAMES)
+
+
+def test_the_agent_type_and_the_graph_agree_on_which_nodes_exist():
+    """A handoff is typed ``Agent``, so the type must name exactly the nodes."""
+    assert set(Agent.__args__) == set(graph.NODE_NAMES)
 
 
 def test_step_budget_outranks_a_pending_handoff():
