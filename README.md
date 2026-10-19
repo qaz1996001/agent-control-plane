@@ -116,11 +116,16 @@ not consent.
 > last being the resume that carries no decision. Pinned by `test_hitl.py`.
 
 **Masking** — `privacy.mask` replaces addresses, internal hostnames and
-handles with placeholders before the model sees them, and `restore` puts
-them back only for a viewer holding the permission. It refuses outright
-rather than restoring what it can: a partial restore still leaks and
-reads as though nothing was withheld. The mapping is bound to the run and
-never written into state, because state is checkpointed.
+handles with placeholders before the model sees them, and that half runs
+in every pipeline run. `restore` is the other half of the same mechanism,
+and it is the half this pipeline does not reach: what gets masked is the
+*context* sent to the judge, and a verdict comes back in the model's own
+words, so a run's answer holds no placeholder of ours to put back.
+`consult` returns the mapping and the run drops it. `restore` puts values
+back only for a viewer holding the permission, and refuses outright rather
+than restoring what it can — a partial restore still leaks and reads as
+though nothing was withheld. The mapping is bound to the run and never
+written into state, because state is checkpointed.
 
 > Run `mask`, which shows the placeholder text and both ways `restore`
 > refuses. It also fires in an ordinary run: the diff fixture carries an
@@ -447,10 +452,12 @@ The tests are the deliverable; the implementation is small on purpose.
 - **The quota ledger is per process.** Two workers each get a full
   allowance, so the real ceiling is the limit times the worker count.
   Shared enforcement needs a shared counter and a store.
-- **Provider health is an input, not a measurement.** `choose` takes the
-  set the caller believes is up. A real version tracks failures per
-  provider and half-opens after a cooldown; the ordering rules are the
-  part that transfers.
+- **Provider health is a hard-coded constant.** `choose` takes the set its
+  caller believes is up, but `agents.HEALTHY` is a module-level constant
+  and `build_graph` has no parameter that injects one, so a pipeline
+  caller cannot pass a health view at all — that constant is the seam. A
+  real version tracks failures per provider and half-opens after a
+  cooldown; the ordering rules are the part that transfers.
 - **No guardrails.** No injection detection, output filtering or
   prompt-leak checks. Offline they could only be tested against the
   examples their own patterns were written from, which is a test that

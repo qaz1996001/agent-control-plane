@@ -159,10 +159,16 @@ Shared enforcement needs a shared counter, which needs a store. The
 exception shape and the per-tenant keying are the parts worth showing;
 the store is not.
 
-**Provider health is an input, not a measurement.** `choose` takes the
-set of providers the caller believes are up. A production version tracks
-failures per provider and half-opens after a cooldown. The simplification
-is in where health comes from, not in the ordering rules.
+**Provider health is a module constant, not an input and not a
+measurement.** `providers.choose` does take the set of providers its
+caller believes are up — but the pipeline's caller cannot supply one.
+`agents.HEALTHY` is a module-level constant and `build_graph` has no
+parameter that injects a health view, so the set is a parameter of
+`choose` alone, which `test_providers.py` and the `residency` scenario
+call directly. That constant is where a real deployment attaches its own
+health view, and a production version also tracks failures per provider
+and half-opens after a cooldown. The simplification is in where health
+comes from, not in the ordering rules.
 
 **Nothing here streams, so no spend check can be mid-flight.**
 `BudgetedStream`'s per-chunk guard is correct and pinned, but `consult`
@@ -203,6 +209,7 @@ just preferences.
 | Durable checkpointing by default | Any deployment where a pause outlives a process — the hook (`durability="require"`) is already there and already refuses to pretend |
 | NER-based masking | Free-text identifiers appear in the inputs; patterns cover structured ones adequately and nothing else |
 | Sandboxing | A tool does anything but read, or a tool's arguments come from outside the control plane |
+| An injectable provider health view | Any provider can actually go down — the moment a hard-coded `HEALTHY` is *wrong* rather than merely fixed, it becomes a `build_graph` parameter, for the same reason the quota counter becomes shared: the process has stopped being the whole system |
 
 ---
 

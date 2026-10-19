@@ -99,9 +99,9 @@ flowchart LR
     M --> P["&lt;EMAIL_1&gt; &lt;HOST_1&gt;"]
     M -.-> MAP[["Mapping<br/>綁定 trace_id"]]
     P --> J["Judge<br/>只看得到這個"]
-    J --> R["遮罩過的回答"]
+    J --> R["verdict<br/>模型自己的話"]
 
-    R --> RS{"privacy.restore"}
+    R -.->|"沒有執行走這條"| RS{"privacy.restore"}
     MAP -.-> RS
     RS -->|"viewer.may_unmask"| OK["真實值回來"]
     RS -->|"沒有權限"| D1["RestoreDenied<br/>一個字都不還原"]
@@ -117,6 +117,8 @@ flowchart LR
 ```
 
 兩種拒絕，而不是一次「盡力而為」。**部分還原是所有可能結果裡最差的那一個**：它照樣外洩，而且讀起來像是什麼都沒被扣住。`test_restore_refuses_outright_rather_than_restoring_part` 釘住這一條。
+
+通往 `restore` 的那條虛線是這張圖最誠實的部分。**一次流水線執行只遮罩，不還原**：被遮罩的是送給 judge 的脈絡，verdict 回來的是模型自己的話，而 `Consultation.mapping` 在行程內回傳後就被丟掉——這件事 [`scope.zh-TW.md`](scope.zh-TW.md) 一直都是照實寫的。真正走到 `restore` 的是 `test_privacy.py` 與 `mask` 情境的直接呼叫。把三個端點放在一起的論證，並不需要一次執行把三個都走過；它論的是「**如果**值會回來，那道檢查該放在哪裡」。但圖不該畫出一條沒有執行會走的路。見 [`errata.md`](errata.md) 的 C2。
 
 通往 state 的那條虛線是**不存在**的那一條。state 會被 checkpoint；一份存著映射的 checkpoint 等於在資料真正躺著的地方把遮罩解開，所以映射留在行程內，由 `test_the_unmasking_map_never_reaches_checkpointed_state` 斷言。
 

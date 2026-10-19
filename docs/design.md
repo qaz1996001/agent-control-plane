@@ -121,9 +121,9 @@ flowchart LR
     M --> P["&lt;EMAIL_1&gt; &lt;HOST_1&gt;"]
     M -.-> MAP[["Mapping<br/>bound to trace_id"]]
     P --> J["the Judge<br/>sees only this"]
-    J --> R["masked answer"]
+    J --> R["the verdict<br/>the model's own words"]
 
-    R --> RS{"privacy.restore"}
+    R -.->|"no run takes this edge"| RS{"privacy.restore"}
     MAP -.-> RS
     RS -->|"viewer.may_unmask"| OK["real values back"]
     RS -->|"no permission"| D1["RestoreDenied<br/>nothing restored"]
@@ -142,6 +142,17 @@ Two refusals rather than one best effort. A partial restore is the worst
 available outcome: it still leaks, and it reads as though nothing was
 withheld. `test_restore_refuses_outright_rather_than_restoring_part`
 pins that.
+
+The dotted edge into `restore` is the honest part of the diagram. A
+pipeline run masks and never restores: `mask` covers the context sent to
+the judge, the verdict comes back in the model's own words, and
+`Consultation.mapping` is returned in process and dropped — which
+[`scope.md`](scope.md) has always said. `restore` is reached by
+`test_privacy.py` and by the `mask` scenario calling it directly. The
+argument for keeping the three endpoints together does not need a run that
+exercises all three; it is an argument about where the check belongs *if*
+the value comes back. But the diagram should not imply a path no run
+takes. See [`errata.md`](errata.md), entry C2.
 
 The dotted edge to state is the one that is *not* there. State gets
 checkpointed; a checkpoint holding the mapping would undo the masking at
