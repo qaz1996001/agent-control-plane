@@ -1,6 +1,6 @@
 """Where the real world gets wired in.
 
-Every tool here is a stub that prints what it *would* call. That is the
+Every tool here is a stub that records the call it *would* make. That is the
 point of the file: it marks each integration seam explicitly, so swapping
 a stub for a real client is a one-function change and you can see exactly
 how many of them there are.

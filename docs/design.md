@@ -36,7 +36,8 @@ flowchart TD
 
     G -.->|"interrupt_before:<br/>run stops and is checkpointed"| H(["waiting for a human"])
     H -->|"resume with approve=True"| D
-    H -->|"resume with approve=False<br/>or with nothing"| E3(["END — no deploy"])
+    H -->|"resume with approve=False<br/>or with nothing"| D
+    D -.->|"no approval on record"| E3(["END — the deployer refused"])
 
     style X fill:#fce8e6,stroke:#a50e0e
     style H fill:#fff7ed,stroke:#f97316
@@ -47,17 +48,27 @@ flowchart TD
 The dashed edge is the only place the system waits for a person, and it is
 enforced by the runtime rather than by a node remembering to check.
 
+Both resume paths run the deployer; the refusal lives *inside* it. That is
+why "resume with nothing" cannot deploy — there is no separate decline
+branch to get wrong — and it is also why `approval_gate` decides nothing:
+it does not read `human_decision` at all, it clears the pending flag and
+returns. A rejection is declined by the deployer, not at the gate.
+
 **Precedence matters, and is tested:** `test_step_budget_outranks_a_pending_handoff`
 sets `next_agent` *and* `requires_approval` on an over-budget state and
 asserts the run still ends.
 
 ---
 
-## 2. Permission is checked at the call, and advertised from the same table
+## 2. Permission is checked at the call, and would be advertised from the same table
 
-A prompt saying "do not deploy" is a request. `ACCESS` is a check. The
-schemas offered to a model are generated from that same table, so a tool
-cannot be advertised to an agent that is forbidden to run it.
+A prompt saying "do not deploy" is a request. `ACCESS` is a check.
+`allowed()` is the single source for both readings of that table —
+`invoke` checks it, `schemas_for` renders it — so a tool cannot be
+advertised to an agent that is forbidden to run it. No node here lets a
+model pick a tool, so the rendering is the seam a tool-calling loop would
+attach to; pinning the agreement before anything depends on it is the
+cheap half of that work, and the only half that transfers.
 
 ```mermaid
 flowchart LR
@@ -81,11 +92,11 @@ flowchart LR
     acc --> S
     acc --> I["invoke(agent, name, args)"]
 
-    S --> M["what the model is offered"]
+    S --> M["what a model would be offered<br/>(no node offers them yet)"]
     I --> K{"on the allow-list?"}
     K -->|no| DEN["AccessDenied"]
     K -->|yes| RUN["tool runs"]
-    RUN -->|raises| ERR["{'error': ...}<br/>one step degrades"]
+    RUN -->|raises| ERR["{'error': ...}<br/>never raises into the graph"]
     RUN -->|returns| OK["result"]
 
     style DEN fill:#fce8e6,stroke:#a50e0e
@@ -117,9 +128,9 @@ flowchart LR
     M --> P["&lt;EMAIL_1&gt; &lt;HOST_1&gt;"]
     M -.-> MAP[["Mapping<br/>bound to trace_id"]]
     P --> J["the Judge<br/>sees only this"]
-    J --> R["masked answer"]
+    J --> R["the verdict<br/>the model's own words"]
 
-    R --> RS{"privacy.restore"}
+    R -.->|"no run takes this edge"| RS{"privacy.restore"}
     MAP -.-> RS
     RS -->|"viewer.may_unmask"| OK["real values back"]
     RS -->|"no permission"| D1["RestoreDenied<br/>nothing restored"]
@@ -138,6 +149,17 @@ Two refusals rather than one best effort. A partial restore is the worst
 available outcome: it still leaks, and it reads as though nothing was
 withheld. `test_restore_refuses_outright_rather_than_restoring_part`
 pins that.
+
+The dotted edge into `restore` is the honest part of the diagram. A
+pipeline run masks and never restores: `mask` covers the context sent to
+the judge, the verdict comes back in the model's own words, and
+`Consultation.mapping` is returned in process and dropped — which
+[`scope.md`](scope.md) has always said. `restore` is reached by
+`test_privacy.py` and by the `mask` scenario calling it directly. The
+argument for keeping the three endpoints together does not need a run that
+exercises all three; it is an argument about where the check belongs *if*
+the value comes back. But the diagram should not imply a path no run
+takes. See [`errata.md`](errata.md), entry C2.
 
 The dotted edge to state is the one that is *not* there. State gets
 checkpointed; a checkpoint holding the mapping would undo the masking at
@@ -196,9 +218,9 @@ not answerable after the fact once the health picture has changed.
 | The step guard beats a hand-off and an approval | `test_step_budget_outranks_a_pending_handoff` |
 | The run genuinely pauses at the gate | `test_run_actually_stops_at_the_gate` |
 | Absence of a decision is not consent | `test_resuming_with_no_decision_still_refuses_to_deploy` |
-| The reviewer cannot self-approve | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
+| The reviewer does not write `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
 | Offered schemas equal the allow-list | `test_schemas_offered_match_the_allow_list` |
-| A raising tool degrades one step | `test_a_raising_tool_degrades_instead_of_crashing` |
+| A raising tool returns an error object instead of raising | `test_a_raising_tool_degrades_instead_of_crashing` |
 | The budget bites mid-stream | `test_stream_is_cut_mid_way_not_after_the_fact` |
 | The real count replaces the estimate | `test_real_usage_overwrites_the_estimate` |
 | A diagnostic metric never gates | `test_the_diagnostic_metric_never_blocks_however_bad` |

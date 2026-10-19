@@ -31,7 +31,8 @@ flowchart TD
 
     G -.->|"interrupt_before：<br/>執行停住並存檔"| H(["等待人工"])
     H -->|"帶 approve=True 恢復"| D
-    H -->|"帶 approve=False<br/>或什麼都不帶"| E3(["END —— 不部署"])
+    H -->|"帶 approve=False<br/>或什麼都不帶"| D
+    D -.->|"沒有核可紀錄"| E3(["END —— deployer 拒絕"])
 
     style X fill:#fce8e6,stroke:#a50e0e
     style H fill:#fff7ed,stroke:#f97316
@@ -41,13 +42,15 @@ flowchart TD
 
 虛線是整個系統唯一會等人的地方，而且是由執行層強制，不是靠某個節點記得要檢查。
 
+**兩條恢復的路最後都會跑到 deployer，拒絕的判斷在它裡面。** 這就是為什麼「什麼都不帶就恢復」部署不了——根本沒有一條獨立的拒絕分支可以寫錯；也是為什麼 `approval_gate` 其實什麼都沒決定：它連 `human_decision` 都不讀，只把待核可的旗標清掉就返回。**拒絕是 deployer 做的，不是在閘門做的。**
+
 **優先序本身是被測的**：`test_step_budget_outranks_a_pending_handoff` 在一個已超過步數上限的狀態上**同時**設了 `next_agent` 和 `requires_approval`，斷言執行仍然結束。
 
 ---
 
-## 2. 權限在呼叫點檢查，而且與「對外宣告」同源
+## 2. 權限在呼叫點檢查，而「將來要對外宣告」的也是同一張表
 
-提示詞寫「不要部署」是一個請求。`ACCESS` 是一個檢查。提供給模型的 schema 由同一張表生成，所以**一個工具不可能被推薦給沒有權限執行它的代理**。
+提示詞寫「不要部署」是一個請求。`ACCESS` 是一個檢查。`allowed()` 是這張表的唯一來源，兩種讀法都從它來——`invoke` 做檢查、`schemas_for` 做算繪——所以**一個工具不可能被推薦給沒有權限執行它的代理**。這個 repo 沒有任何節點讓模型自己挑工具，所以那層算繪是「將來要接 tool-calling」的那道縫；在還沒有人依賴它之前就把一致性釘住，是這件事裡便宜的那一半，也是唯一可移植的那一半。
 
 ```mermaid
 flowchart LR
@@ -71,11 +74,11 @@ flowchart LR
     acc --> S
     acc --> I["invoke(agent, name, args)"]
 
-    S --> M["模型看得到的工具清單"]
+    S --> M["模型將來會看到的工具清單<br/>（目前沒有節點提供）"]
     I --> K{"在白名單內？"}
     K -->|否| DEN["AccessDenied"]
     K -->|是| RUN["執行工具"]
-    RUN -->|拋錯| ERR["{'error': ...}<br/>只降級一步"]
+    RUN -->|拋錯| ERR["{'error': ...}<br/>不會拋進圖裡"]
     RUN -->|正常| OK["結果"]
 
     style DEN fill:#fce8e6,stroke:#a50e0e
@@ -99,9 +102,9 @@ flowchart LR
     M --> P["&lt;EMAIL_1&gt; &lt;HOST_1&gt;"]
     M -.-> MAP[["Mapping<br/>綁定 trace_id"]]
     P --> J["Judge<br/>只看得到這個"]
-    J --> R["遮罩過的回答"]
+    J --> R["verdict<br/>模型自己的話"]
 
-    R --> RS{"privacy.restore"}
+    R -.->|"沒有執行走這條"| RS{"privacy.restore"}
     MAP -.-> RS
     RS -->|"viewer.may_unmask"| OK["真實值回來"]
     RS -->|"沒有權限"| D1["RestoreDenied<br/>一個字都不還原"]
@@ -117,6 +120,8 @@ flowchart LR
 ```
 
 兩種拒絕，而不是一次「盡力而為」。**部分還原是所有可能結果裡最差的那一個**：它照樣外洩，而且讀起來像是什麼都沒被扣住。`test_restore_refuses_outright_rather_than_restoring_part` 釘住這一條。
+
+通往 `restore` 的那條虛線是這張圖最誠實的部分。**一次流水線執行只遮罩，不還原**：被遮罩的是送給 judge 的脈絡，verdict 回來的是模型自己的話，而 `Consultation.mapping` 在行程內回傳後就被丟掉——這件事 [`scope.zh-TW.md`](scope.zh-TW.md) 一直都是照實寫的。真正走到 `restore` 的是 `test_privacy.py` 與 `mask` 情境的直接呼叫。把三個端點放在一起的論證，並不需要一次執行把三個都走過；它論的是「**如果**值會回來，那道檢查該放在哪裡」。但圖不該畫出一條沒有執行會走的路。見 [`errata.md`](errata.md) 的 C2。
 
 通往 state 的那條虛線是**不存在**的那一條。state 會被 checkpoint；一份存著映射的 checkpoint 等於在資料真正躺著的地方把遮罩解開，所以映射留在行程內，由 `test_the_unmasking_map_never_reaches_checkpointed_state` 斷言。
 
@@ -163,9 +168,9 @@ flowchart TD
 | 步數上限壓過交棒與核可 | `test_step_budget_outranks_a_pending_handoff` |
 | 執行真的停在閘門 | `test_run_actually_stops_at_the_gate` |
 | 沒有決定不等於同意 | `test_resuming_with_no_decision_still_refuses_to_deploy` |
-| 審查者不能代替人核可 | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
+| 審查者不寫 `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
 | 宣告的 schema 等於白名單 | `test_schemas_offered_match_the_allow_list` |
-| 工具拋錯只降級一步 | `test_a_raising_tool_degrades_instead_of_crashing` |
+| 工具拋錯回傳 error 物件，不往外拋 | `test_a_raising_tool_degrades_instead_of_crashing` |
 | 預算在串流中途就咬 | `test_stream_is_cut_mid_way_not_after_the_fact` |
 | 真實用量覆寫估算值 | `test_real_usage_overwrites_the_estimate` |
 | 診斷指標永不擋發布 | `test_the_diagnostic_metric_never_blocks_however_bad` |

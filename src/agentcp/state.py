@@ -1,8 +1,10 @@
 """Pipeline state — the I/O contract every agent shares.
 
 The contract is explicit on purpose. Each agent writes exactly one
-``*_report`` key and never reads another agent's internals, so a reviewer
-can tell from this file alone what any node is allowed to produce.
+``*_report`` key, and those reports are the only channel between agents --
+``deployer_node`` reads ``plan_report``, so a report is a published
+contract rather than an internal. A reviewer can tell from this file alone
+what any node is allowed to produce.
 """
 
 from __future__ import annotations
@@ -63,8 +65,10 @@ class PipelineState(TypedDict, total=False):
     requires_approval : bool
         Set by an agent that wants a human to look before the next step.
     human_decision : dict or None
-        ``{"approve": bool, "reason": str}``. Populated only by resuming
-        an interrupted run — never by an agent.
+        ``{"approve": bool, "reason": str}``. Written by resuming an
+        interrupted run; no node in this package writes it. That is a
+        convention of the nodes, not a guarantee of this type -- see
+        ``docs/errata.md``, entry A1.
     step_count, max_steps : int
         Runaway guard. The graph stops when step_count reaches max_steps.
     completed : list[str]

@@ -69,10 +69,17 @@ raises; it does not fall back to a default. A typo that silently routed to
 > loop ends at the step guard. Pinned by `test_routing.py`, `test_handoff.py`.
 
 **Permissions** — `ACCESS` maps agent → allowed tools, checked in `invoke`
-right next to the call. The schemas offered to a model are generated from
-the same table, so what is advertised and what is permitted cannot drift
-apart. A tool that raises is converted to `{"error": ...}` so one bad tool
-degrades a step instead of killing a run that is holding an approval.
+right next to the call. `allowed()` is the single source for two readings
+of that table: `invoke` checks it, `schemas_for` renders it, and a test
+pins that the two agree for every agent and tenant. No node here lets a
+model pick a tool, so the rendering is the seam a tool-calling loop would
+attach to rather than something this pipeline exercises -- the agreement
+is pinned in advance because that is the cheap half. A tool that raises is
+converted to `{"error": ...}`, so an exception never reaches the graph and
+a broken integration cannot kill a run that is holding an approval.
+Whether the *step* degrades is a separate claim and not yet true: no
+caller inspects that key, so the error object travels on as data. See
+[docs/errata.md](docs/errata.md), D4.
 
 > Seen in `approve`, which prints the `tools called` list -- four tools for
 > four agents. Pinned by `test_tool_access.py`.
@@ -88,11 +95,16 @@ rather than used because its fields happen to have survived.
 > Run `budget`, which shows the guard and then what it does to a run at
 > three budget levels. Pinned by `test_budget.py`, `test_audit.py`.
 
-**One thing the budget cannot do**, and the scenario says so: a judge that
-answers in one shot has generated -- and been billed for -- its whole reply
-before anything can count it. Refusing at that point buys correctness, not
-credit. The check that saves money is the one *before* the call, when the
-budget is already gone; the tenant quota is what actually caps spend.
+**One thing neither the budget nor the quota can do**, and the scenario
+says so: a judge that answers in one shot has generated -- and been billed
+for -- its whole reply before anything can count it. Refusing at that
+point buys correctness, not credit. The two are structurally symmetric,
+checked within a few lines of each other in `consult`, and both are gates
+*before* the call: the ledger is charged only once the judge has returned,
+so an exhausted quota refuses the *next* call rather than this one.
+Nothing here stops a reply already in flight. `BudgetedStream`'s per-chunk
+guard is written for a live stream it has not been handed -- `_chunks`
+re-slices a reply that arrived whole.
 
 **Approval** — the graph is compiled with
 `interrupt_before=["approval_gate"]`. A run that reaches the gate stops and
@@ -104,11 +116,16 @@ not consent.
 > last being the resume that carries no decision. Pinned by `test_hitl.py`.
 
 **Masking** — `privacy.mask` replaces addresses, internal hostnames and
-handles with placeholders before the model sees them, and `restore` puts
-them back only for a viewer holding the permission. It refuses outright
-rather than restoring what it can: a partial restore still leaks and
-reads as though nothing was withheld. The mapping is bound to the run and
-never written into state, because state is checkpointed.
+handles with placeholders before the model sees them, and that half runs
+in every pipeline run. `restore` is the other half of the same mechanism,
+and it is the half this pipeline does not reach: what gets masked is the
+*context* sent to the judge, and a verdict comes back in the model's own
+words, so a run's answer holds no placeholder of ours to put back.
+`consult` returns the mapping and the run drops it. `restore` puts values
+back only for a viewer holding the permission, and refuses outright rather
+than restoring what it can — a partial restore still leaks and reads as
+though nothing was withheld. The mapping is bound to the run and never
+written into state, because state is checkpointed.
 
 > Run `mask`, which shows the placeholder text and both ways `restore`
 > refuses. It also fires in an ordinary run: the diff fixture carries an
@@ -150,7 +167,7 @@ Ten scenarios, each printing what actually happened:
 | scenario | shows |
 |---|---|
 | `approve` | the run pauses, a human approves, and only then does it deploy |
-| `reject`  | declined at the gate -- `deploy` is never called |
+| `reject`  | a human declines -- the deployer refuses, `deploy` is never called |
 | `ignore`  | resumed with no decision -- still refuses |
 | `rework`  | reviewer sends it back; the loop ends at the step guard |
 | `budget`  | a long response cut mid-stream, then the real count replaces the estimate |
@@ -334,8 +351,10 @@ The tests are the deliverable; the implementation is small on purpose.
   `deploy_report` exists yet
 - Approve → deploys; reject → finishes without deploying, with a reason
 - **Resuming with no decision still refuses**
-- A machine-approved review sets `requires_approval` and never writes
-  `human_decision` — the reviewer cannot approve on the human's behalf
+- A machine-approved review sets `requires_approval` and does not write
+  `human_decision` — so the reviewer does not approve on the human's
+  behalf. The state type does not yet stop a node that tries; see
+  [docs/errata.md](docs/errata.md)
 
 **Hand-off** (`test_handoff.py`)
 - Each agent writes exactly one `*_report` key and no other agent's
@@ -433,10 +452,12 @@ The tests are the deliverable; the implementation is small on purpose.
 - **The quota ledger is per process.** Two workers each get a full
   allowance, so the real ceiling is the limit times the worker count.
   Shared enforcement needs a shared counter and a store.
-- **Provider health is an input, not a measurement.** `choose` takes the
-  set the caller believes is up. A real version tracks failures per
-  provider and half-opens after a cooldown; the ordering rules are the
-  part that transfers.
+- **Provider health is a hard-coded constant.** `choose` takes the set its
+  caller believes is up, but `agents.HEALTHY` is a module-level constant
+  and `build_graph` has no parameter that injects one, so a pipeline
+  caller cannot pass a health view at all — that constant is the seam. A
+  real version tracks failures per provider and half-opens after a
+  cooldown; the ordering rules are the part that transfers.
 - **No guardrails.** No injection detection, output filtering or
   prompt-leak checks. Offline they could only be tested against the
   examples their own patterns were written from, which is a test that
@@ -483,8 +504,10 @@ production system already behaves this way.
   allow-list. Each node imports the functions it needs, so which tools a
   step may use is a convention about imports rather than a check at the
   call site. `ACCESS` is what that convention looks like once it is written
-  down and enforced — with the schemas offered to a model generated from the
-  same table, so what is advertised and what is permitted cannot drift apart.
+  down and enforced — with the same table generating the schemas a model
+  would be offered, so what is advertised and what is permitted cannot
+  drift apart. Nothing here offers them yet; the agreement is pinned
+  before anything depends on it.
 
 The approval gate, by contrast, *is* a reproduction: same
 `interrupt_before` on the gate node, same `human_decision` carried in

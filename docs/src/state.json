@@ -8,7 +8,7 @@
  "width": 1200,
  "height": 760,
  "title": "資料狀態：PipelineState 的生命週期",
- "subtitle": "18 個欄位，每一格都有明確的寫入者；human_decision 只有 resume 寫得到",
+ "subtitle": "18 個欄位，依「什麼時候被寫」分組；human_decision 目前只有 resume 寫得到",
  "containers": [
   {
    "id": "fields",
@@ -67,7 +67,7 @@
    "width": 540,
    "height": 64,
    "label": "4　resume 注入決定",
-   "sublabel": "唯一能寫 human_decision 的時機",
+   "sublabel": "目前唯一會寫 human_decision 的時機",
    "fill": "#faf5ff",
    "stroke": "#8b5cf6"
   },
@@ -103,8 +103,8 @@
    "y": 262,
    "width": 488,
    "height": 100,
-   "label": "節點寫入",
-   "sublabel": "四個 report, next_agent, step_count, completed, calls, tokens_used",
+   "label": "節點寫入（分組，非逐格指名）",
+   "sublabel": "四個 report 各一個寫入者；next_agent 四個、step_count/completed 五個、calls/tokens_used 兩個",
    "fill": "#eff6ff",
    "stroke": "#3b82f6"
   },
@@ -115,7 +115,7 @@
    "y": 402,
    "width": 488,
    "height": 72,
-   "label": "只有 resume 寫入",
+   "label": "目前只有 resume 寫入",
    "sublabel": "human_decision",
    "fill": "#faf5ff",
    "stroke": "#8b5cf6"
@@ -127,8 +127,8 @@
    "y": 514,
    "width": 488,
    "height": 56,
-   "label": "沒有人跨寫",
-   "sublabel": "代理不得寫別人的報告，也不得寫 human_decision",
+   "label": "慣例，還不是結構",
+   "sublabel": "沒有節點跨寫報告或 human_decision —— 但 state 型別也還沒阻止",
    "fill": "#fce8e6",
    "stroke": "#a50e0e"
   }

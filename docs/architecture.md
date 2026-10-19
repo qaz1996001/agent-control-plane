@@ -40,8 +40,11 @@ so the audit trail cannot be rewritten by a later node.
 
 **The tool surface** is one way out. Every call goes through `invoke`,
 which checks the agent against `allowed(agent, tenant)` before the adapter
-runs. An adapter that raises is converted to an error object, so a broken
-integration degrades one step.
+runs. An adapter that raises is converted to an error object, so an
+exception never reaches the graph and a broken integration cannot kill a
+run that is holding an approval. Whether the *step* degrades is the
+caller's half of that bargain, and no caller here inspects the key yet —
+[`errata.md`](errata.md), D4.
 
 **The model surface** is the other, and it is `consult` — the only place
 in the package a `Judge` is called. Masking, provider selection, the
@@ -61,12 +64,21 @@ Source: [`state.py`](../src/agentcp/state.py), [`tools.py`](../src/agentcp/tools
 
 ![state lifecycle](state.svg)
 
-Each of the 18 fields has one writer, and the diagram names it.
+There are 18 fields. One writer each holds for the four `*_report` slots
+and for `human_decision`; it does not hold for the rest. `next_agent` is
+written by four nodes, `step_count` and `completed` by five (every node
+goes through `_advance`), `calls` and `tokens_used` by two, and
+`requires_approval` by two — the reviewer sets it and the gate clears it.
+The diagram groups those under "written by nodes" rather than naming each,
+so it shows *when* a field is written rather than by whom.
 
-The row that matters is `human_decision`: it is writable only by resuming
-an interrupted run. No agent can set it, which is what makes "the reviewer
-cannot approve on the human's behalf" a structural property rather than a
-convention.
+The row that matters is `human_decision`: the only thing that writes it
+today is a resume carrying a decision, and no node writes it. That is a
+convention of the nodes, not yet a property of the state — `PipelineState`
+is a bare `TypedDict` and `graph.py` merges a node's patch into state
+unchanged, so a node that returned `human_decision` would forge a human
+approval and nothing would reject it. The gap, and the reducer that is to
+close it, are entry A1 in [`errata.md`](errata.md).
 
 Four fields are set once at `new_state` and only read afterwards —
 `trace_id`, `tenant`, `sensitivity`, `max_steps`. They are the run's

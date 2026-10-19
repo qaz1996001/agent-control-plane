@@ -1,6 +1,8 @@
 """Reversible pseudonymisation around the model call.
 
-Three endpoints of one mechanism, and they only work as a set:
+Three endpoints of one mechanism. They are written as a set because the
+guarantee only exists when they sit together; in this repository only the
+first is on the pipeline's path:
 
 1. **Mask before the call.** The model is given ``<EMAIL_1>``, not the
    reporter's address. It does not need to know who that is; it needs to
@@ -21,6 +23,14 @@ Why these three live in one module: if masking is in a gateway, restoring
 is in a view layer and the permission is in a template, nothing can assert
 that a value masked on the way out is restorable only on the way back to
 someone entitled to it. Splitting them is how the guarantee is lost.
+
+What this repository does not demonstrate is a pipeline run that restores.
+``mask`` covers the *context* sent to the judge; a verdict comes back in
+the model's own words, so a run's answer holds no placeholder of ours to
+put back, and ``Consultation.mapping`` is returned in process and dropped.
+``restore`` is reached by ``test_privacy.py`` and by the ``mask`` scenario
+calling it directly. That is a seam, and it is stated as one -- see
+``docs/errata.md``, entry C2.
 
 This is rule matching, not NER. See ``docs/scope.md``.
 """

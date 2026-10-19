@@ -20,7 +20,7 @@
 | 路由決策碰不到任何模型 | 注入式 `Judge`，測試裡全部下毒 | `test_routing.py` |
 | 循環贏不過步數上限 | `next_node` 的固定優先序 | `test_routing.py`、`test_handoff.py` |
 | 代理只能呼叫自己的工具 | `invoke` 內檢查 `ACCESS` | `test_tool_access.py` |
-| 「提供的」等於「允許的」 | `schemas_for` 與 `invoke` 共用 `allowed()` | `test_tool_access.py` |
+| 同一張工具表的兩種讀法不會漂移 | `schemas_for` 與 `invoke` 共用 `allowed()` | `test_tool_access.py` |
 | 租戶規則只能收窄角色，不能放寬 | `TENANT_DENY` 對 `ACCESS` 做減法 | `test_tool_access.py` |
 | 沒有人點頭就不會部署 | `interrupt_before=["approval_gate"]` | `test_hitl.py` |
 | 沒有決定不等於同意 | 拒絕寫在 deployer 裡面 | `test_hitl.py` |
@@ -31,7 +31,7 @@
 | 每一次模型呼叫都走同一道門 | `agents.consult` | `test_audit.py` |
 | 每一次呼叫都留紀錄，包含被拒絕的 | `audit.CallRecord` | `test_audit.py`、`test_quota.py` |
 | 估算值不會留在帳上 | `BudgetedStream.settle` → `audit.settle` | `test_budget.py`、`test_audit.py` |
-| 預算在回應中途就咬下去 | 逐 chunk 計數 | `test_budget.py` |
+| 預算在跨過的那一塊就切斷串流 | `BudgetedStream` 的逐 chunk 計數 | `test_budget.py` |
 | 一個租戶花不到另一個租戶的額度 | 以租戶為鍵的 `quota.Ledger` | `test_quota.py` |
 | 超額錯誤說得出什麼時候再來 | `QuotaExceeded.retry_after` | `test_quota.py` |
 | 閘門逐指標擋，不看混合分數 | `THRESHOLDS` | `test_evals.py` |
@@ -97,7 +97,9 @@
 
 **配額帳本是單行程的。** 兩個 worker 各自拿到完整額度，所以真正的天花板是「限額 × worker 數」。共享的強制執行需要共享計數器，共享計數器需要一個儲存。值得展示的是例外的形狀與以租戶為鍵這件事，不是那個儲存。
 
-**供應商健康狀態是輸入，不是量測。** `choose` 接收呼叫端「相信還活著」的那組供應商。正式版會逐供應商追蹤失敗並在冷卻後半開。簡化的是健康狀態從哪裡來，不是排序規則。
+**供應商健康狀態是一個模組常數，既不是輸入也不是量測。** `providers.choose` 確實接收呼叫端「相信還活著」的那組供應商——但流水線的呼叫端給不了。`agents.HEALTHY` 是模組層級的常數，而 `build_graph` 沒有任何參數能注入健康視圖，所以那組供應商只是 `choose` 自己的參數，而直接呼叫 `choose` 的是 `test_providers.py` 與 `residency` 情境。那個常數就是真實部署要把自己的健康視圖接上來的地方；正式版還會逐供應商追蹤失敗並在冷卻後半開。簡化的是健康狀態從哪裡來，不是排序規則。
+
+**這裡沒有任何東西在串流，所以沒有一道花費檢查落在途中。** `BudgetedStream` 的逐塊守衛是對的，也有測試釘住，但 `consult` 拿到的是 `Judge` 回傳的一整個 `dict`，`_chunks` 只是把它重新切塊——守衛算的是一份已經抵達的回覆。預算與配額都是**呼叫之前**的閘門，結構上對稱，而帳本是 judge 回傳之後才扣，所以額度用盡擋的是下一次呼叫，不是在途的這一次。這是「一次把答案給完」這個 `Judge` 契約的性質，不是這兩個機制的缺口：**真正能省到錢的只有呼叫前那道檢查。**
 
 **複雜度路由拿脈絡長度當代理指標。** 很粗糙，而且就擺在一個常數裡（`HIGH_COMPLEXITY_CHARS`），不是埋起來。
 
@@ -119,6 +121,7 @@
 | 預設持久化 | 任何「暫停會活得比行程久」的部署；掛鉤（`durability="require"`）已經在了，而且已經拒絕假裝 |
 | NER 遮罩 | 輸入裡開始出現自由文字型的識別資訊；結構化的那些 pattern 已經夠，其餘的不夠 |
 | 沙箱 | 工具開始做讀取以外的事，或工具的參數來自控制平面之外 |
+| 可注入的供應商健康視圖 | 真的會有供應商掛掉的時候——硬編的 `HEALTHY` 從「固定」變成「**錯的**」的那一刻，它就該變成 `build_graph` 的參數；理由和配額計數器該變共享的一樣：行程已經不等於整個系統了 |
 
 ---
 
