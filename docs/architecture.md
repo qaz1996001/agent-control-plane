@@ -51,7 +51,7 @@ in the package a `Judge` is called. Masking, provider selection, the
 budget, the quota and the audit record all sit behind that one function,
 so they are not things a node has to remember. A second entry point would
 make every one of them optional, which is why
-`test_consult_is_the_only_place_a_judge_is_called` exists.
+`test_only_consult_contains_a_call_to_the_injected_judge` exists.
 
 What does *not* cross any surface is the unmasking map. It is returned to
 the caller in process and never written to state, because state is

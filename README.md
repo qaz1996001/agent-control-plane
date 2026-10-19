@@ -355,7 +355,9 @@ The tests are the deliverable; the implementation is small on purpose.
 - **Resuming with no decision still refuses**
 - A machine-approved review sets `requires_approval` and does not write
   `human_decision` — so the reviewer does not approve on the human's
-  behalf. The state type does not yet stop a node that tries; see
+  behalf. **A node that tries raises**, because `build_graph` refuses a
+  patch naming a field in `state.PROTECTED`; four tests go red if that
+  wrapper is removed. It was a convention until it was not — entry A1 in
   [docs/errata.md](docs/errata.md)
 
 **Hand-off** (`test_handoff.py`)
@@ -427,6 +429,9 @@ The tests are the deliverable; the implementation is small on purpose.
   falling back** to the in-memory saver
 - Passing a `MemorySaver` explicitly does not satisfy the requirement --
   the question is whether a pause survives a restart
+- **Any other saver is accepted on trust**, and the test says so in its
+  name: the guard is a blocklist of what is known to be process-local, and
+  a type cannot tell you whether a store outlives the process
 
 **Policy snapshots** (`test_evals.py`)
 - A result records the thresholds it was judged under
@@ -445,8 +450,12 @@ The tests are the deliverable; the implementation is small on purpose.
   and "malformed reply".
 - **In-memory checkpointing by default.** `MemorySaver` is enough to show
   interrupt/resume. `durability="require"` exists for the case where a
-  pause must survive a restart and refuses to compile without a store that
-  can deliver it, but no such store ships here.
+  pause must survive a restart, and refuses the two ways of not having a
+  store: none at all, and a `MemorySaver` passed explicitly. It is a
+  blocklist of what is known to be process-local, **not** a verification
+  that a store survives a restart — nothing in the type says whether it
+  does, so any other saver is accepted on trust. No durable store ships
+  here.
 - **Masking is rule matching, not NER.** Addresses, internal hostnames and
   handles, by pattern. Structured identifiers are covered; names and
   free-text identifiers are not. The mechanism does not change when the

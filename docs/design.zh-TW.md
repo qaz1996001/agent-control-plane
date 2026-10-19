@@ -164,7 +164,7 @@ flowchart TD
 | 同一 trigger 永遠走同一條路 | `test_same_trigger_always_routes_to_same_agent` |
 | 型別與路由表不可能漂移 | `test_every_trigger_in_the_type_has_a_route` |
 | 未知 trigger 拋錯而非預設 | `test_unknown_trigger_raises_instead_of_defaulting` |
-| 控制平面碰不到模型 | `test_routing_touches_no_model` |
+| judge 動不了路由 | `test_a_judge_that_returns_control_fields_does_not_get_control`、`test_the_judge_is_consulted_twice_and_the_route_does_not_depend_on_it` |
 | 步數上限壓過交棒與核可 | `test_step_budget_outranks_a_pending_handoff` |
 | 執行真的停在閘門 | `test_run_actually_stops_at_the_gate` |
 | 沒有決定不等於同意 | `test_resuming_with_no_decision_still_refuses_to_deploy` |
@@ -183,7 +183,7 @@ flowchart TD
 | 還原用的映射不會進到 state | `test_the_unmasking_map_never_reaches_checkpointed_state` |
 | 受限內容絕不送到遠端供應商 | `test_restricted_content_never_reaches_a_remote_provider` |
 | 容錯跨成本層但不跨地域 | `test_failover_may_not_cross_the_locality_veto` |
-| 每次模型呼叫都走同一道門 | `test_consult_is_the_only_place_a_judge_is_called` |
+| 每次模型呼叫都走同一道門 | `test_only_consult_contains_a_call_to_the_injected_judge` |
 | 被拒絕的呼叫照樣留下紀錄 | `test_a_refused_call_still_leaves_a_record` |
 | 執行的 token 計數器真的被扣 | `test_the_run_token_counter_is_actually_charged` |
 | 租戶規則只能減、不能給 | `test_a_tenant_rule_can_only_subtract_never_grant` |

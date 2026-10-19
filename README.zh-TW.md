@@ -232,7 +232,7 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 - 執行是真的停住：`snapshot.next == ("approval_gate",)` 且此時還沒有 `deploy_report`
 - 核可 → 部署；拒絕 → 結束但不部署，並寫明原因
 - **不帶決定恢復，照樣拒絕部署**
-- 機器判定通過的審查只會設 `requires_approval`，**不會寫 `human_decision`** —— 所以審查者沒有代替人核可。state 型別目前還擋不住一個偏要寫的節點，見 [docs/errata.md](docs/errata.md)
+- 機器判定通過的審查只會設 `requires_approval`，**不會寫 `human_decision`** —— 所以審查者沒有代替人核可。而**一個偏要寫的節點會拋錯**，因為 `build_graph` 拒絕任何指名 `state.PROTECTED` 欄位的 patch；拔掉那層包裝會讓四條測試變紅。它曾經只是慣例，見 [docs/errata.md](docs/errata.md) 的 A1
 
 **交棒**（`test_handoff.py`）
 - 每個代理只寫自己那一個 `*_report`，不碰別人的
@@ -290,6 +290,7 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 **持久化**（`test_durability.py`）
 - `durability="require"` 卻沒有儲存時**直接拋錯，不靜默退回**記憶體 saver
 - 明確傳一個 `MemorySaver` 進去也不算數——問題是暫停撐不撐得過重啟
+- **其他任何 saver 都是被信任而放行的**，而測試的名字就這麼寫：這道守衛是一張「已知行程內儲存」的黑名單，而型別說不出一個儲存撐不撐得過行程
 
 **策略快照**（`test_evals.py`）
 - 判決會記下它當初是依哪一組閾值判的
@@ -302,7 +303,7 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 寫出來是因為一個藏起邊界的示範沒有用。
 
 - **測試不會真的呼叫模型。** 需要判斷的點是可注入的 callable，測試用確定性假物件。這讓整套測試離線可跑、也讓「控制平面沒有模型」那條測試有意義。`gemma` 情境確實會呼叫本地的真模型，但那是**示範那個縫**，不是測試覆蓋：這裡沒有驗證真實 tokenizer 的計數，供應商的故障模式也只處理了「連不上」與「回覆格式錯」兩種。
-- **預設的 checkpoint 只在記憶體裡。** `MemorySaver` 足以展示 interrupt／resume。`durability="require"` 存在，是為了「暫停必須撐過重啟」的場合——沒有做得到的儲存它就拒絕編譯；但這個 repo 沒有附任何這樣的儲存。
+- **預設的 checkpoint 只在記憶體裡。** `MemorySaver` 足以展示 interrupt／resume。`durability="require"` 存在，是為了「暫停必須撐過重啟」的場合，而它拒絕「沒有儲存」的兩種形式：完全沒傳，以及明確傳一個 `MemorySaver`。它是一張**已知行程內儲存的黑名單，不是對持久性的驗證**——型別裡沒有任何東西說得出一個 saver 撐不撐得過重啟，所以其他 saver 都是**被信任**而非被驗證。這個 repo 沒有附任何持久化儲存。
 - **遮罩是規則比對，不是 NER。** 地址、內部主機名、帳號代號，靠 pattern。結構化的識別資訊涵蓋得到，人名與自由文字裡的不行。偵測器變好時機制不會變，變的只有召回率。
 - **配額帳本是單行程的。** 兩個 worker 各自拿到完整額度，所以真正的天花板是「限額 × worker 數」。共享的強制執行需要共享計數器與一個儲存。
 - **供應商健康狀態是一個硬編常數。** `choose` 接收呼叫端相信還活著的那一組，但 `agents.HEALTHY` 是模組層級常數，`build_graph` 也沒有任何參數能注入，所以流水線的呼叫端根本遞不進一份健康視圖——那個常數就是接縫本身。正式版會逐供應商追蹤失敗並在冷卻後半開；可移植的是排序規則。

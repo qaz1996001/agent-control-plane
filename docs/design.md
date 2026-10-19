@@ -214,7 +214,7 @@ not answerable after the fact once the health picture has changed.
 | Same trigger always routes the same way | `test_same_trigger_always_routes_to_same_agent` |
 | The trigger type and the route table cannot drift | `test_every_trigger_in_the_type_has_a_route` |
 | An unknown trigger raises rather than defaulting | `test_unknown_trigger_raises_instead_of_defaulting` |
-| No model is reachable from the control plane | `test_routing_touches_no_model` |
+| A judge cannot move the route | `test_a_judge_that_returns_control_fields_does_not_get_control`, `test_the_judge_is_consulted_twice_and_the_route_does_not_depend_on_it` |
 | The step guard beats a hand-off and an approval | `test_step_budget_outranks_a_pending_handoff` |
 | The run genuinely pauses at the gate | `test_run_actually_stops_at_the_gate` |
 | Absence of a decision is not consent | `test_resuming_with_no_decision_still_refuses_to_deploy` |
@@ -233,7 +233,7 @@ not answerable after the fact once the health picture has changed.
 | The unmasking map never reaches state | `test_the_unmasking_map_never_reaches_checkpointed_state` |
 | Restricted content never reaches a remote provider | `test_restricted_content_never_reaches_a_remote_provider` |
 | Failover crosses cost but not locality | `test_failover_may_not_cross_the_locality_veto` |
-| Every model call goes through one door | `test_consult_is_the_only_place_a_judge_is_called` |
+| Every model call goes through one door | `test_only_consult_contains_a_call_to_the_injected_judge` |
 | A refused call still leaves a record | `test_a_refused_call_still_leaves_a_record` |
 | The run's token counter is actually charged | `test_the_run_token_counter_is_actually_charged` |
 | A tenant rule narrows, never grants | `test_a_tenant_rule_can_only_subtract_never_grant` |
