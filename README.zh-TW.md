@@ -53,11 +53,11 @@ uv run --with pytest --with langgraph pytest -q      # 44 passed
 ## 怎麼跑
 
 ```bash
-uv run --with langgraph python examples/run_pipeline.py            # 六個情境全跑
+uv run --with langgraph python examples/run_pipeline.py            # 七個情境全跑
 uv run --with langgraph python examples/run_pipeline.py approve    # 只跑一個
 ```
 
-六個情境，每個都把實際發生的事印出來：
+七個情境，每個都把實際發生的事印出來：
 
 | 情境 | 展示什麼 |
 |---|---|
@@ -67,6 +67,7 @@ uv run --with langgraph python examples/run_pipeline.py approve    # 只跑一�
 | `rework`  | 審查退回；迴圈停在步數上限 |
 | `budget`  | 過長的回應在中途被切斷，之後真實用量覆寫估算值 |
 | `gate`    | 發布被評測閘門擋下、修好後放行；同一指標的漂移偵測 |
+| `gemma`   | 由真的本地模型做判斷；路徑不因此改變 |
 
 `approve` 的輸出（節錄）：
 
@@ -94,7 +95,7 @@ approve -- a human says yes, and only then does it deploy
   the loop did not run forever; max_steps decided when to stop
 ```
 
-### 選用：把真的模型插進判斷的那個縫
+### 第七個情境：把真的模型插進判斷的那個縫
 
 上面六個情境不需要模型、不需要網路。第七個情境 `gemma` 跑的是和 `approve`
 完全相同的流程，只是判斷由真的模型來做——本地 Ollama 上的 Gemma 4 E4B：
@@ -104,7 +105,8 @@ ollama pull gemma4:e4b                                           # 約 6.6 GB
 uv run --with langgraph python examples/run_pipeline.py gemma
 ```
 
-它不在預設執行清單裡；模型沒裝的話情境會說明原因並跳過，而不是爆掉。
+它在預設執行清單裡。前六個情境依然不需要模型也不需要網路；Gemma 沒有在跑的話，
+這個情境會印出缺什麼然後跳過，而不是爆掉——所以沒裝 Ollama 的 clone 行為和以前完全一樣。
 
 接法在 [`examples/gemma_judge.py`](examples/gemma_judge.py)，約 200 行、
 全部用標準庫——**沒有新增任何依賴**，因為 `Judge` 就是

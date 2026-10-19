@@ -13,9 +13,9 @@ budget    an over-long model response is cut off mid-stream
 gate      a release is blocked by the eval gate, then allowed
 gemma     the same run as `approve`, with a real local model judging
 
-The first six need no model and no network. `gemma` does: it wants a local
-Ollama serving Gemma 4 E4B (`ollama pull gemma4:e4b`), and it is excluded
-from the default run for that reason.
+The first six need no model and no network. `gemma` wants a local Ollama
+serving Gemma 4 E4B (`ollama pull gemma4:e4b`); without it the scenario
+explains what is missing and skips, so the default run still works offline.
 """
 
 from __future__ import annotations
@@ -220,13 +220,9 @@ SCENARIOS = {
     "gemma": scenario_gemma,
 }
 
-#: Run by default. `gemma` is left out because it needs a local model server.
-OFFLINE = [n for n in SCENARIOS if n != "gemma"]
-
-
 def main() -> None:
     adapters.register_stubs()
-    wanted = sys.argv[1:] or OFFLINE
+    wanted = sys.argv[1:] or list(SCENARIOS)
     for name in wanted:
         if name not in SCENARIOS:
             raise SystemExit(f"unknown scenario {name!r}; pick from {list(SCENARIOS)}")

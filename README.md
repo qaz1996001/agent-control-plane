@@ -80,11 +80,11 @@ not consent.
 ## Running it
 
 ```bash
-uv run --with langgraph python examples/run_pipeline.py            # all six
+uv run --with langgraph python examples/run_pipeline.py            # all seven
 uv run --with langgraph python examples/run_pipeline.py approve    # just one
 ```
 
-Six scenarios, each printing what actually happened:
+Seven scenarios, each printing what actually happened:
 
 | scenario | shows |
 |---|---|
@@ -94,6 +94,7 @@ Six scenarios, each printing what actually happened:
 | `rework`  | reviewer sends it back; the loop ends at the step guard |
 | `budget`  | a long response cut mid-stream, then the real count replaces the estimate |
 | `gate`    | a release blocked by the eval gate, then allowed; drift on the same metric |
+| `gemma`   | a real local model does the judging; the route does not change |
 
 Abridged output of `approve`:
 
@@ -121,7 +122,7 @@ And `rework`, where the reviewer keeps rejecting:
   the loop did not run forever; max_steps decided when to stop
 ```
 
-### Optional: a real model in the judgement seam
+### The seventh: a real model in the judgement seam
 
 The six scenarios above need no model and no network. A seventh, `gemma`,
 runs the same pipeline as `approve` with a real model doing the judging --
@@ -132,8 +133,10 @@ ollama pull gemma4:e4b                                           # ~6.6 GB
 uv run --with langgraph python examples/run_pipeline.py gemma
 ```
 
-It is excluded from the default run, and if the model is not there the
-scenario says so and skips rather than failing.
+It runs as part of the default set. The first six still need no model and
+no network, and if Gemma is not being served this one prints what is
+missing and skips rather than failing -- so a clone with no Ollama behaves
+exactly as before.
 
 The adapter is [`examples/gemma_judge.py`](examples/gemma_judge.py), about
 200 lines of standard library -- there is no new dependency, because
