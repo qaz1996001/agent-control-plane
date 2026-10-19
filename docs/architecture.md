@@ -30,52 +30,77 @@ Source: [`router.py`](../src/agentcp/router.py), [`graph.py`](../src/agentcp/gra
 
 ![data flow](dataflow.svg)
 
-Two surfaces, and nothing crosses between them except through a tool call.
+Three surfaces, and a node reaches the outside world through exactly
+two of them — each a single function.
 
 **The state surface** is in-process. Agents never pass values to each
 other; they read `payload` and prior reports from `PipelineState` and write
-exactly one `*_report` slot each. `completed` is append-only, so the audit
-trail cannot be rewritten by a later node.
+exactly one `*_report` slot each. `completed` and `calls` are append-only,
+so the audit trail cannot be rewritten by a later node.
 
-**The tool surface** is the only way out. Every call goes through `invoke`,
-which checks the agent against `ACCESS` before the adapter runs. An adapter
-that raises is converted to an error object, so a broken integration
-degrades one step.
+**The tool surface** is one way out. Every call goes through `invoke`,
+which checks the agent against `allowed(agent, tenant)` before the adapter
+runs. An adapter that raises is converted to an error object, so a broken
+integration degrades one step.
 
-Source: [`state.py`](../src/agentcp/state.py), [`tools.py`](../src/agentcp/tools.py)
+**The model surface** is the other, and it is `consult` — the only place
+in the package a `Judge` is called. Masking, provider selection, the
+budget, the quota and the audit record all sit behind that one function,
+so they are not things a node has to remember. A second entry point would
+make every one of them optional, which is why
+`test_consult_is_the_only_place_a_judge_is_called` exists.
+
+What does *not* cross any surface is the unmasking map. It is returned to
+the caller in process and never written to state, because state is
+checkpointed and a checkpoint holding real values would undo the masking
+exactly where the data rests.
+
+Source: [`state.py`](../src/agentcp/state.py), [`tools.py`](../src/agentcp/tools.py), [`agents.py`](../src/agentcp/agents.py), [`privacy.py`](../src/agentcp/privacy.py), [`providers.py`](../src/agentcp/providers.py)
 
 ## 3. Data state
 
 ![state lifecycle](state.svg)
 
-Each of the 14 fields has one writer, and the diagram names it.
+Each of the 18 fields has one writer, and the diagram names it.
 
-The row that matters is the third: `human_decision` is writable only by
-resuming an interrupted run. No agent can set it, which is what makes
-"the reviewer cannot approve on the human's behalf" a structural property
-rather than a convention.
+The row that matters is `human_decision`: it is writable only by resuming
+an interrupted run. No agent can set it, which is what makes "the reviewer
+cannot approve on the human's behalf" a structural property rather than a
+convention.
 
-Source: [`state.py`](../src/agentcp/state.py), [`agents.py`](../src/agentcp/agents.py)
+Four fields are set once at `new_state` and only read afterwards —
+`trace_id`, `tenant`, `sensitivity`, `max_steps`. They are the run's
+identity and its constraints, and nothing during the run may relax them.
+Giving each an explicit value at creation rather than defaulting it at the
+point of use is deliberate: "unset" and "set to the default" should not
+read the same.
+
+Source: [`state.py`](../src/agentcp/state.py), [`agents.py`](../src/agentcp/agents.py), [`audit.py`](../src/agentcp/audit.py)
 
 ## 4. Usage scenarios
 
 ![scenarios](scenarios.svg)
 
-The six scenarios in [`examples/run_pipeline.py`](../examples/run_pipeline.py).
+The scenarios in [`examples/run_pipeline.py`](../examples/run_pipeline.py).
 Each is runnable:
 
 ```bash
 uv run --with langgraph python examples/run_pipeline.py approve
 ```
 
-Three of the six end in "did not deploy", which is the intended shape: the
-interesting cases for a deploy pipeline are the ones where it declines.
+Most of them end in "did not deploy", which is the intended shape: the
+interesting cases for a deploy pipeline are the ones where it declines,
+and there are more ways to decline than to proceed.
 
 ---
 
 | View | Tests that pin it |
 |---|---|
 | Control flow | `test_routing.py`, `test_handoff.py` |
-| Data flow | `test_tool_access.py` |
-| Data state | `test_hitl.py` |
-| Scenarios | all seven test files |
+| Data flow | `test_tool_access.py`, `test_privacy.py`, `test_providers.py` |
+| Data state | `test_hitl.py`, `test_audit.py` |
+| Scenarios | all twelve test files |
+
+What this page does not cover is the boundary itself — which
+capabilities of the original system are here, which were left out, and
+why. That is [`scope.md`](scope.md).

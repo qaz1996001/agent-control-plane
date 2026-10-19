@@ -22,41 +22,49 @@
 
 ![資料流](dataflow.svg)
 
-兩個面，之間只能透過一次工具呼叫穿過去。
+三個面，而節點只透過其中兩個碰到外面的世界——每一個都是單一一個函式。
 
-**狀態面**在行程內。代理之間不互相傳值，而是從 `PipelineState` 讀 `payload` 與前序報告，各自只寫一格 `*_report`。`completed` 只增不改，所以稽核軌跡不會被後面的節點改寫。
+**狀態面**在行程內。代理之間不互相傳值，而是從 `PipelineState` 讀 `payload` 與前序報告，各自只寫一格 `*_report`。`completed` 與 `calls` 只增不改，所以稽核軌跡不會被後面的節點改寫。
 
-**工具面**是唯一的對外出口。每次呼叫都經過 `invoke`，在 adapter 執行前先比對 `ACCESS`。adapter 拋錯會被收斂成錯誤物件，所以一個壞掉的整合只降級一個步驟。
+**工具面**是對外出口之一。每次呼叫都經過 `invoke`，在 adapter 執行前先比對 `allowed(agent, tenant)`。adapter 拋錯會被收斂成錯誤物件，所以一個壞掉的整合只降級一個步驟。
 
-對應原始碼：[`state.py`](../src/agentcp/state.py)、[`tools.py`](../src/agentcp/tools.py)
+**模型面**是另一個，它就是 `consult`——整個套件裡唯一呼叫 `Judge` 的地方。遮罩、供應商選擇、預算、配額、稽核紀錄全部坐在這一個函式後面，所以它們不是節點需要「記得」的事。多開一個入口會讓以上每一項都變成選配，這就是 `test_consult_is_the_only_place_a_judge_is_called` 存在的理由。
+
+**不**穿過任何一個面的，是還原用的映射。它在行程內回傳給呼叫端，從不寫進 state——因為 state 會被 checkpoint，而一份存著真實值的 checkpoint 等於在資料真正躺著的地方把遮罩解開。
+
+對應原始碼：[`state.py`](../src/agentcp/state.py)、[`tools.py`](../src/agentcp/tools.py)、[`agents.py`](../src/agentcp/agents.py)、[`privacy.py`](../src/agentcp/privacy.py)、[`providers.py`](../src/agentcp/providers.py)
 
 ## 3. 資料狀態
 
 ![資料狀態](state.svg)
 
-14 個欄位，每一格都只有一個寫入者，圖上把它標出來。
+18 個欄位，每一格都只有一個寫入者，圖上把它標出來。
 
-**第三列是重點**：`human_decision` 只有「恢復一個被中斷的執行」時寫得到。任何代理都設不了它——這就是為什麼「審查者不能代替人核可」是一個**結構性質**，而不是一條大家記得遵守的慣例。
+**`human_decision` 那一列是重點**：只有「恢復一個被中斷的執行」時寫得到。任何代理都設不了它——這就是為什麼「審查者不能代替人核可」是一個**結構性質**，而不是一條大家記得遵守的慣例。
 
-對應原始碼：[`state.py`](../src/agentcp/state.py)、[`agents.py`](../src/agentcp/agents.py)
+有四個欄位在 `new_state` 時設定一次，之後只讀不寫——`trace_id`、`tenant`、`sensitivity`、`max_steps`。它們是這次執行的身分與限制，執行過程中沒有任何東西可以放寬它們。在建立時就給每一個明確的值、而不是在使用點才套預設，是刻意的：**「沒設定」與「設定成預設值」不該讀起來一樣**。
+
+對應原始碼：[`state.py`](../src/agentcp/state.py)、[`agents.py`](../src/agentcp/agents.py)、[`audit.py`](../src/agentcp/audit.py)
 
 ## 4. 使用情境
 
 ![使用情境](scenarios.svg)
 
-[`examples/run_pipeline.py`](../examples/run_pipeline.py) 的六個情境，每個都可以直接跑：
+[`examples/run_pipeline.py`](../examples/run_pipeline.py) 的情境，每個都可以直接跑：
 
 ```bash
 uv run --with langgraph python examples/run_pipeline.py approve
 ```
 
-**六個裡有三個的結果是「沒有部署」**，這是刻意的：對一條部署流水線來說，值得看的正是它拒絕的那些情況。
+**多數情境的結果是「沒有部署」**，這是刻意的：對一條部署流水線來說，值得看的正是它拒絕的那些情況，而拒絕的方式本來就比放行多。
 
 ---
 
 | 視圖 | 由哪些測試釘住 |
 |---|---|
 | 程式流程 | `test_routing.py`、`test_handoff.py` |
-| 資料流 | `test_tool_access.py` |
-| 資料狀態 | `test_hitl.py` |
-| 使用情境 | 七個測試檔全部 |
+| 資料流 | `test_tool_access.py`、`test_privacy.py`、`test_providers.py` |
+| 資料狀態 | `test_hitl.py`、`test_audit.py` |
+| 使用情境 | 十二個測試檔全部 |
+
+這一頁沒有涵蓋的是**邊界本身**——原系統的哪些能力在這裡、哪些沒有、為什麼。那在 [`scope.zh-TW.md`](scope.zh-TW.md)。

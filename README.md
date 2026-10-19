@@ -3,19 +3,26 @@
 # agent-control-plane — let the model decide inside a step, never between steps
 
 A runnable demonstration of one position: **an agent pipeline's control
-plane should be ordinary code.** Routing, permissions, budget and human
-approval are a lookup table, an allow-list, a counter and an interrupt —
-not things a model is asked to get right.
+plane should be ordinary code.** Routing, permissions, budget, masking,
+provider choice and human approval are a lookup table, an allow-list, a
+counter, a substitution, a veto and an interrupt — not things a model is
+asked to get right.
 
 ```bash
-uv run --with pytest --with langgraph pytest -q      # 44 passed
+uv run --with pytest --with langgraph pytest -q                    # 94 passed
+uv run --with langgraph python examples/run_pipeline.py            # 10 scenarios
 ```
+
+Every claim below is one of those ten scenarios, and each prints what
+actually happened. Most of them end in *did not deploy*. That is the
+intended shape: in a deploy pipeline the interesting cases are the ones
+where it declines, and there are more ways to decline than to proceed.
 
 Built on LangGraph for the runtime (node execution, checkpointing, and the
 interrupt that makes approval a real pause). The routing policy is a plain
 function over state, so it is testable without building a graph.
 
-Four views of what the code does -- control flow, data flow, state lifecycle and usage scenarios -- are in [docs/architecture.md](docs/architecture.md).
+Four views of what the code does -- control flow, data flow, state lifecycle and usage scenarios -- are in [docs/architecture.md](docs/architecture.md). What is deliberately *not* here, and why, is in [docs/scope.md](docs/scope.md).
 
 The domain is a software-delivery pipeline — Ticket → Plan → Review →
 Deploy — because that is the case where "the agent decided to deploy" is a
@@ -52,11 +59,14 @@ review this diff. Those are injected callables (`Judge`), which is also
 what makes "the control plane ran with every model entry point poisoned"
 an assertion rather than a claim.
 
-### Four properties, four mechanisms
+### Six properties, six mechanisms
 
 **Routing** — `ROUTE_TABLE` maps trigger → agent. An unknown trigger
 raises; it does not fall back to a default. A typo that silently routed to
 `deployer` is exactly the failure worth preventing.
+
+> Seen in `rework`, where the trail is the route the table chose and the
+> loop ends at the step guard. Pinned by `test_routing.py`, `test_handoff.py`.
 
 **Permissions** — `ACCESS` maps agent → allowed tools, checked in `invoke`
 right next to the call. The schemas offered to a model are generated from
@@ -64,10 +74,15 @@ the same table, so what is advertised and what is permitted cannot drift
 apart. A tool that raises is converted to `{"error": ...}` so one bad tool
 degrades a step instead of killing a run that is holding an approval.
 
+> Seen in `approve`, which prints the `tools called` list -- four tools for
+> four agents. Pinned by `test_tool_access.py`.
+
 **Budget** — `BudgetedStream` counts tokens per chunk and raises the moment
 the budget is crossed, mid-stream. It estimates, because it has to decide
 before the provider reports; `settle()` then replaces the estimate with the
 real count so the audit record is not left holding the approximation.
+
+> Run `budget`. Pinned by `test_budget.py`.
 
 **Approval** — the graph is compiled with
 `interrupt_before=["approval_gate"]`. A run that reaches the gate stops and
@@ -75,16 +90,50 @@ is checkpointed. Nothing deploys until someone resumes it with a decision,
 and resuming *without* a decision still refuses — absence of a decision is
 not consent.
 
+> Three scenarios, one mechanism: `approve`, `reject`, and `ignore` -- the
+> last being the resume that carries no decision. Pinned by `test_hitl.py`.
+
+**Masking** — `privacy.mask` replaces addresses, internal hostnames and
+handles with placeholders before the model sees them, and `restore` puts
+them back only for a viewer holding the permission. It refuses outright
+rather than restoring what it can: a partial restore still leaks and
+reads as though nothing was withheld. The mapping is bound to the run and
+never written into state, because state is checkpointed.
+
+> Run `mask`, which shows the placeholder text and both ways `restore`
+> refuses. Pinned by `test_privacy.py`.
+
+**Provider choice** — `providers.choose` applies three filters in order:
+health, then a locality **veto**, then a cost preference. Restricted
+content cannot reach a remote provider even when that is the only healthy
+one — the answer is "no provider", not "just this once". Failover may
+cross the cost preference; it may never cross the veto.
+
+> Run `residency`. Its last row is the point: the only healthy provider was
+> remote and the answer was still no. Pinned by `test_providers.py`.
+
+All six meet in one place. `agents.consult` is the only function in the
+package that calls a `Judge`, so masking, provider selection, the budget,
+the tenant's quota and the audit record are reached by construction
+rather than by every node remembering to reach them. A test asserts there
+is no second door.
+
+> `quota` is what that single door looks like when a tenant is out of
+> allowance: the run declines and the attempt is still recorded
+> (`test_quota.py`). `gate` is the other gate -- an eval threshold and
+> drift on the same metric (`test_evals.py`, `test_drift.py`). The tenth,
+> `gemma`, puts a real model behind the door; see below.
+
 ---
 
 ## Running it
 
 ```bash
-uv run --with langgraph python examples/run_pipeline.py            # all seven
+uv run --with langgraph python examples/run_pipeline.py            # all ten
 uv run --with langgraph python examples/run_pipeline.py approve    # just one
 ```
 
-Seven scenarios, each printing what actually happened:
+Ten scenarios, each printing what actually happened:
 
 | scenario | shows |
 |---|---|
@@ -94,6 +143,9 @@ Seven scenarios, each printing what actually happened:
 | `rework`  | reviewer sends it back; the loop ends at the step guard |
 | `budget`  | a long response cut mid-stream, then the real count replaces the estimate |
 | `gate`    | a release blocked by the eval gate, then allowed; drift on the same metric |
+| `mask`    | what the model is shown, and the two ways restoring is refused |
+| `residency` | the only healthy provider is remote, the content is restricted, and the answer is still no |
+| `quota`   | a tenant out of allowance -- the run declines, and the attempt is still recorded |
 | `gemma`   | a real local model does the judging; the route does not change |
 
 Abridged output of `approve`:
@@ -122,9 +174,9 @@ And `rework`, where the reviewer keeps rejecting:
   the loop did not run forever; max_steps decided when to stop
 ```
 
-### The seventh: a real model in the judgement seam
+### The last one: a real model in the judgement seam
 
-The six scenarios above need no model and no network. A seventh, `gemma`,
+The nine scenarios above need no model and no network. The tenth, `gemma`,
 runs the same pipeline as `approve` with a real model doing the judging --
 Gemma 4 E4B on a local Ollama:
 
@@ -133,7 +185,7 @@ ollama pull gemma4:e4b                                           # ~6.6 GB
 uv run --with langgraph python examples/run_pipeline.py gemma
 ```
 
-It runs as part of the default set. The first six still need no model and
+It runs as part of the default set. The first nine still need no model and
 no network, and if Gemma is not being served this one prints what is
 missing and skips rather than failing -- so a clone with no Ollama behaves
 exactly as before.
@@ -186,7 +238,10 @@ Two things the scenario is built to show:
 
 `examples/adapters.py` is the integration surface. Every tool there is a
 stub that records the call it would have made, which makes the seams
-countable -- there are seven.
+countable -- there are seven registered, of which the node implementations
+currently reach four. The other three (`label_ticket`, `post_comment`,
+`read_plan`) are permitted and wired but unused; `tools called` in the
+output below is the honest list.
 
 | stub | what replaces it |
 |---|---|
@@ -211,11 +266,18 @@ page with the evidence and two buttons; the buttons call `invoke` with
 `Command(update={"human_decision": ...})` on the same thread id. Nothing
 polls, and a pause costs nothing while it waits.
 
-**Three things to change before production.** A durable checkpointer, so a
-pause survives a restart -- `MemorySaver` loses it. Process or container
-isolation for tools, because the allow-list authorises but does not
-contain. And a real scorer behind the eval gate, which currently takes
+**What to change before production.** A durable checkpointer, so a pause
+survives a restart -- `MemorySaver` loses it. The hook is already there
+and already refuses to pretend: `build_graph(durability="require")`
+raises rather than falling back, and passing a `MemorySaver` explicitly
+does not satisfy it. Process or container isolation for tools, because
+the allow-list authorises but does not contain. A shared quota counter,
+because the ledger here is per process and two workers each get a full
+allowance. And a real scorer behind the eval gate, which currently takes
 metrics as input rather than producing them.
+
+The full list of what is here, what is not, and the condition that would
+reopen each omission is [docs/scope.md](docs/scope.md).
 
 
 ---
@@ -275,6 +337,54 @@ The tests are the deliverable; the implementation is small on purpose.
 - A short window reports `insufficient_data`, not `ok`
 - A flat baseline reports `insufficient_data` rather than an infinite z
 
+**Masking** (`test_privacy.py`)
+- The masked text contains no real value **anywhere** -- asserted over the
+  whole string, not the positions the substitution touched
+- Repeats of one value share a placeholder, so the model can still tell
+  two mentions are the same entity
+- **Restoring without the permission refuses outright** rather than
+  restoring what it can
+- One run's mapping cannot resolve another run's placeholders
+- A placeholder the model invented stays literal instead of resolving
+
+**Provider choice** (`test_providers.py`)
+- **Restricted content never reaches a remote provider, even when the
+  remote one is the only healthy provider left**
+- Failover crosses the cost preference and never the locality veto
+- The refusal says why, rather than just failing
+- Every choice carries the reason the audit record stores
+
+**Audit and the single door** (`test_audit.py`)
+- **`consult` is the only place a `Judge` is called** -- a second entry
+  point would make masking, budget and audit optional
+- The judge only ever sees masked text
+- **The unmasking map never reaches checkpointed state**
+- Every model-consulting node leaves exactly one record
+- The run's token counter equals the sum of its call records
+- A response cut by the budget, and a call refused outright, both still
+  leave a record
+- An unsettled record is distinguishable from one settled at the estimate
+
+**Tenancy and quota** (`test_tool_access.py`, `test_quota.py`)
+- A tenant rule can narrow a role and **never widen it**, checked across
+  every (agent, tenant) pair
+- Offered schemas equal the allow-list for every (agent, tenant) pair
+- One tenant running out does not touch another's allowance
+- The over-quota error carries `retry_after`
+- The spend that broke the limit is still counted
+- A tenant denied `deploy` makes the deployer refuse with a reason rather
+  than crash and lose an approval already given
+
+**Durability** (`test_durability.py`)
+- `durability="require"` without a store **raises instead of silently
+  falling back** to the in-memory saver
+- Passing a `MemorySaver` explicitly does not satisfy the requirement --
+  the question is whether a pause survives a restart
+
+**Policy snapshots** (`test_evals.py`)
+- A result records the thresholds it was judged under
+- **Raising a bar later does not rewrite an earlier verdict**
+
 ---
 
 ## Limitations
@@ -286,9 +396,25 @@ The tests are the deliverable; the implementation is small on purpose.
   of the seam, not coverage: nothing here exercises token accounting
   against a real tokenizer, or provider failure modes beyond "unreachable"
   and "malformed reply".
-- **In-memory checkpointing.** `MemorySaver` is enough to show
-  interrupt/resume; a real deployment needs a durable checkpointer for a
-  pause to survive a restart.
+- **In-memory checkpointing by default.** `MemorySaver` is enough to show
+  interrupt/resume. `durability="require"` exists for the case where a
+  pause must survive a restart and refuses to compile without a store that
+  can deliver it, but no such store ships here.
+- **Masking is rule matching, not NER.** Addresses, internal hostnames and
+  handles, by pattern. Structured identifiers are covered; names and
+  free-text identifiers are not. The mechanism does not change when the
+  detector improves — only recall does.
+- **The quota ledger is per process.** Two workers each get a full
+  allowance, so the real ceiling is the limit times the worker count.
+  Shared enforcement needs a shared counter and a store.
+- **Provider health is an input, not a measurement.** `choose` takes the
+  set the caller believes is up. A real version tracks failures per
+  provider and half-opens after a cooldown; the ordering rules are the
+  part that transfers.
+- **No guardrails.** No injection detection, output filtering or
+  prompt-leak checks. Offline they could only be tested against the
+  examples their own patterns were written from, which is a test that
+  always passes and proves nothing. See [docs/scope.md](docs/scope.md).
 - **No sandboxing.** Tools run in-process. Real agent execution needs
   process or container isolation and a network policy; the allow-list here
   is an authorisation model, not a containment one.
@@ -310,7 +436,33 @@ from-scratch reimplementation of the *decisions*, in a different domain, to
 make them inspectable.
 
 **No code from that system is used here.** What carries over is the
-reasoning, written up in [docs/design.md](docs/design.md).
+reasoning, written up in [docs/design.md](docs/design.md), and the
+boundary — which of that system's capabilities are reproduced and which
+were deliberately left out — in [docs/scope.md](docs/scope.md).
+
+### Where this is stricter than what it came from
+
+Two of the four properties are not reproductions. They are arguments with
+the original, and saying so is better than letting a demo imply the
+production system already behaves this way.
+
+- **Routing never reaches a model.** The original routes an *unknown*
+  trigger by asking a model which agent should handle it — behind a feature
+  flag, with the answer validated against the list of agents. That is a
+  defensible escape hatch, and it is also the exact thing this repository
+  argues against. Here an unknown trigger raises, and a test asserts the
+  control plane runs with every model entry point poisoned. An event nobody
+  wrote a route for should become visible, not quietly assigned.
+- **Tool permissions are a checked table.** The original has no per-agent
+  allow-list. Each node imports the functions it needs, so which tools a
+  step may use is a convention about imports rather than a check at the
+  call site. `ACCESS` is what that convention looks like once it is written
+  down and enforced — with the schemas offered to a model generated from the
+  same table, so what is advertised and what is permitted cannot drift apart.
+
+The approval gate, by contrast, *is* a reproduction: same
+`interrupt_before` on the gate node, same `human_decision` carried in
+state, same answer when a run is resumed without one.
 
 Work used LangGraph, and so does this, for the same reason: the interrupt
 is the part worth not reinventing.
