@@ -53,13 +53,21 @@ def show(state: dict) -> None:
         # answered. Print both when they differ -- an injected judge may
         # ignore the selection, and reporting the choice as the outcome
         # would make the ledger say something it does not know.
+        #
+        # `masked`/`unmasked` is printed for every call, not only the
+        # masked ones, and borrows the record's own field name so the
+        # line maps onto the `masked:` field a reader goes looking for.
+        # A mark that appeared only when true would leave the other
+        # calls ambiguous: silence would mean both "nothing in this
+        # context needed masking" and "nobody checked".
         parts = []
         for c in calls:
             used = c.get("provider_used")
+            mask = "masked" if c.get("masked") else "unmasked"
+            part = f"{c['agent']}->{c['provider']} {mask}"
             if used and used != c["provider"]:
-                parts.append(f"{c['agent']}->{c['provider']} but answered by {used}")
-            else:
-                parts.append(f"{c['agent']}->{c['provider']}")
+                part += f" but answered by {used}"
+            parts.append(part)
         print(f"  model calls  {len(calls)}  ({', '.join(parts)})")
         settled = sum(1 for c in calls if c.get("tokens_actual") is not None)
         note = f"   ({settled}/{len(calls)} settled against the provider's count)"
@@ -225,8 +233,48 @@ def scenario_residency() -> None:
         except providers.NoEligibleProvider as exc:
             print(f"  {sensitivity:<11}{label:<17} -> refused: {exc}")
     print()
-    print("  the last row is the point: the only healthy provider was")
+    print("  the fourth row is the point: the only healthy provider was")
     print("  remote, and the answer was still no.")
+
+    # Those four rows call `providers.choose` directly, which shows the
+    # rules and nothing about whether a run can reach them. Every model
+    # call in every other scenario is ("open", "low", all four healthy),
+    # so the veto has never fired on a pipeline path -- and a rule no run
+    # reaches is a rule the reader is taking on trust. So here it is at
+    # the altitude it is claimed at: through the graph, into a node,
+    # through `consult`, which is where the selection actually happens.
+    #
+    # Getting there means narrowing the health view, and the only way to
+    # narrow it is to assign the module constant: `agents.HEALTHY` is
+    # hardcoded and `build_graph` takes no health argument. That is a
+    # real missing seam, not a shortcut taken for the example -- a
+    # deployment with a live health view has nowhere to put it either.
+    # Restored in the `finally`, because a scenario that leaves a module
+    # global rewritten has broken every scenario that runs after it.
+    print("\n  and the same veto on the path a run actually takes:")
+    was_healthy = agents.HEALTHY
+    agents.HEALTHY = frozenset({"cloud-small"})
+    try:
+        adapters.reset()
+        app = build_graph()
+        cfg = {"configurable": {"thread_id": "residency-run"}}
+        out = app.invoke(
+            new_state("ticket_opened", {"ticket": 4821, "pr": 318},
+                      sensitivity="restricted", trace_id="residency-run"),
+            cfg,
+        )
+    finally:
+        agents.HEALTHY = was_healthy
+
+    show(out)
+    print()
+    print(f"  call records {out.get('calls')}")
+    print("  triage asked for a judgement, selection refused before any")
+    print("  model was reached, and the node reported severity 'unknown'")
+    print("  instead of guessing one. The run ends there: no plan, no")
+    print("  review, no deploy. `provider: 'none'` is the record of a")
+    print("  call that was never placed -- the refusal is auditable, which")
+    print("  is the difference between declining and silently coping.")
 
 
 def scenario_quota() -> None:
