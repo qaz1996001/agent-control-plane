@@ -88,11 +88,16 @@ rather than used because its fields happen to have survived.
 > Run `budget`, which shows the guard and then what it does to a run at
 > three budget levels. Pinned by `test_budget.py`, `test_audit.py`.
 
-**One thing the budget cannot do**, and the scenario says so: a judge that
-answers in one shot has generated -- and been billed for -- its whole reply
-before anything can count it. Refusing at that point buys correctness, not
-credit. The check that saves money is the one *before* the call, when the
-budget is already gone; the tenant quota is what actually caps spend.
+**One thing neither the budget nor the quota can do**, and the scenario
+says so: a judge that answers in one shot has generated -- and been billed
+for -- its whole reply before anything can count it. Refusing at that
+point buys correctness, not credit. The two are structurally symmetric,
+checked within a few lines of each other in `consult`, and both are gates
+*before* the call: the ledger is charged only once the judge has returned,
+so an exhausted quota refuses the *next* call rather than this one.
+Nothing here stops a reply already in flight. `BudgetedStream`'s per-chunk
+guard is written for a live stream it has not been handed -- `_chunks`
+re-slices a reply that arrived whole.
 
 **Approval** — the graph is compiled with
 `interrupt_before=["approval_gate"]`. A run that reaches the gate stops and

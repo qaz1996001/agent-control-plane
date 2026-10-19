@@ -43,7 +43,7 @@ fail if the property stops holding.
 | Every model call goes through one door | `agents.consult` | `test_audit.py` |
 | Every call leaves a record, refusals included | `audit.CallRecord` | `test_audit.py`, `test_quota.py` |
 | The estimate never survives in the ledger | `BudgetedStream.settle` → `audit.settle` | `test_budget.py`, `test_audit.py` |
-| The budget bites mid-response | per-chunk counting | `test_budget.py` |
+| The budget cuts a stream on the chunk that crosses | per-chunk counting in `BudgetedStream` | `test_budget.py` |
 | One tenant cannot spend another's allowance | `quota.Ledger` keyed by tenant | `test_quota.py` |
 | An over-quota error says when to retry | `QuotaExceeded.retry_after` | `test_quota.py` |
 | A gate blocks per metric, not on a blend | `THRESHOLDS` | `test_evals.py` |
@@ -163,6 +163,16 @@ the store is not.
 set of providers the caller believes are up. A production version tracks
 failures per provider and half-opens after a cooldown. The simplification
 is in where health comes from, not in the ordering rules.
+
+**Nothing here streams, so no spend check can be mid-flight.**
+`BudgetedStream`'s per-chunk guard is correct and pinned, but `consult`
+receives a complete `dict` from the `Judge` and `_chunks` re-slices it, so
+the guard counts a reply that has already arrived. The budget and the
+quota are both pre-call gates — symmetric by construction, and the ledger
+is charged after the judge returns — which means an exhausted allowance
+refuses the next call, not the one in flight. That is a property of a
+one-shot `Judge` contract, not a gap in either mechanism: the only check
+that can save money is the one before the call.
 
 **Complexity routing uses context length as a proxy.** Crude, and
 visible in one constant (`HIGH_COMPLEXITY_CHARS`) rather than buried.

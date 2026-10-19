@@ -27,8 +27,10 @@ from agentcp.audit import CallRecord, settle
 from agentcp.budget import BudgetExceeded, BudgetedStream
 from agentcp.state import PipelineState
 
-#: Chunk size the provider's prose is streamed in. Small enough that the
-#: budget guard bites part-way through a response rather than after it.
+#: Chunk size the budget guard counts in. Nothing here streams: ``_chunks``
+#: re-slices a reply that has already arrived whole, so the guard cuts the
+#: accounting part-way, never the generation. The size is what a live
+#: stream would be fed in, if one were ever wired to this seam.
 CHUNK_CHARS = 20
 
 #: Above this many characters of context, the work is treated as needing
