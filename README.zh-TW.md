@@ -61,7 +61,7 @@ uv run --with langgraph python examples/run_pipeline.py            # 10 個情�
 
 **遮罩** — `privacy.mask` 在模型看到之前，把地址、內部主機名、帳號代號換成佔位符；`restore` 只對握有權限的檢視者還原。沒有權限時它**整段拒絕**，而不是還原它還原得了的部分：部分還原照樣外洩，而且讀起來像是什麼都沒被扣住。映射綁定這一次執行，而且永不寫進 state——因為 state 會被 checkpoint。
 
-> 跑 `mask`：它會印出模型看到的佔位符文字，以及 `restore` 被拒絕的兩種方式。由 `test_privacy.py` 釘住。
+> 跑 `mask`：它會印出模型看到的佔位符文字，以及 `restore` 被拒絕的兩種方式。它在一般執行裡也會啟動：diff fixture 帶了作者信箱與建置主機，所以 `approve` 與 `gemma` 的 reviewer 那筆 call record 是 `masked: True`。由 `test_privacy.py` 釘住。
 
 **供應商選擇** — `providers.choose` 依序套三道過濾：健康狀態、地域**否決**、成本偏好。受限內容碰不到遠端供應商，**即使那是唯一還活著的那個**——答案是「沒有供應商」，不是「就這一次」。容錯可以跨成本偏好，永遠不能跨否決。
 
@@ -145,25 +145,30 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 
 ```
   model said  '{"severity": "critical"}'
-  model said  '{"approved": true, "comments": ["Small, focused change across
-                only two files. Looks ready to merge."]}'
+  model said  '{"approved": true, "comments": ["Metrics look small and
+                focused. Please provide a description of the changes..."]}'
 
   trail        triage -> planner -> reviewer -> approval_gate -> deployer
   steps        5 / 8
+  model calls  2  (triage->local-small but answered by ollama:gemma4:e4b, ...)
+  tokens       708 / 2000   (2/2 settled against the provider's count)
 
   severity     'normal' (default)  ->  'critical' (Gemma)
   same trail?  True        <- routing is code, not a prompt
   same steps?  5 vs 5
   deployed?    True         <- still only because a human said yes
 
-  model calls  2
+  estimated    50 tokens   <- the char heuristic, from the visible reply
+  provider     708 tokens  <- eval_count, which includes Gemma's
+               hidden reasoning: 14x the estimate.
+
   rejected     0   every reply matched the schema
 ```
 
 模型對嚴重度的判斷和預設值不同——登入噴 500 確實不該是 `normal`——
 而路徑一步都沒變，因為沒有任何地方把路徑交給它決定。
 
-這個情境特意要展示兩件事：
+這個情境特意要展示三件事：
 
 - **它把流程跑兩次**——一次用確定性預設值、一次用 Gemma——然後比對。
   路徑與步數完全相同，改變的只有判斷的**內容**。路由兩種情況下都是一張查找表。
@@ -171,6 +176,11 @@ uv run --with langgraph python examples/run_pipeline.py gemma
   JSON schema 送出去、再拿回來驗證。嚴重度不在列舉內、verdict 不是布林、
   回覆是空的：一律拒收、計數、換成預設值。**降級的是那個步驟，路徑不會動。**
   這就是「模型在步驟*裡面*做判斷」與「模型決定步驟*之間*怎麼走」的差別。
+- **它終於讓 `settle()` 有東西可證。** 預算守衛必須在供應商回報用量之前就做決定，
+  所以它只能照看得見的字元去估。而 Gemma 4 E4B 會先推理再作答，`eval_count`
+  把那段推理也計費：這次執行是 **708 tokens 對上估算的 50**。估算不是小幅偏差，
+  是差一個數量級，而且**偏在要命的那個方向**——帳本若留著估算值，就會把帳少報這麼多。
+  這正是 record 為什麼把 `tokens_actual` 分開放、而且在真實數字到達前一律留 `None`。
 
 ## 真的要上線怎麼接
 

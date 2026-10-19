@@ -101,7 +101,9 @@ reads as though nothing was withheld. The mapping is bound to the run and
 never written into state, because state is checkpointed.
 
 > Run `mask`, which shows the placeholder text and both ways `restore`
-> refuses. Pinned by `test_privacy.py`.
+> refuses. It also fires in an ordinary run: the diff fixture carries an
+> author address and a build host, so the reviewer's call record reads
+> `masked: True` in `approve` and `gemma` too. Pinned by `test_privacy.py`.
 
 **Provider choice** — `providers.choose` applies three filters in order:
 health, then a locality **veto**, then a cost preference. Restricted
@@ -202,18 +204,23 @@ Abridged output, with Gemma 4 E4B actually answering:
 
 ```
   model said  '{"severity": "critical"}'
-  model said  '{"approved": true, "comments": ["Small, focused change across
-                only two files. Looks ready to merge."]}'
+  model said  '{"approved": true, "comments": ["Metrics look small and
+                focused. Please provide a description of the changes..."]}'
 
   trail        triage -> planner -> reviewer -> approval_gate -> deployer
   steps        5 / 8
+  model calls  2  (triage->local-small but answered by ollama:gemma4:e4b, ...)
+  tokens       708 / 2000   (2/2 settled against the provider's count)
 
   severity     'normal' (default)  ->  'critical' (Gemma)
   same trail?  True        <- routing is code, not a prompt
   same steps?  5 vs 5
   deployed?    True         <- still only because a human said yes
 
-  model calls  2
+  estimated    50 tokens   <- the char heuristic, from the visible reply
+  provider     708 tokens  <- eval_count, which includes Gemma's
+               hidden reasoning: 14x the estimate.
+
   rejected     0   every reply matched the schema
 ```
 
@@ -221,7 +228,7 @@ The model disagreed with the default about severity -- a 500 on login is
 indeed not `normal` -- and the route did not change by one step, because
 nothing asked it to.
 
-Two things the scenario is built to show:
+Three things the scenario is built to show:
 
 - **It runs the pipeline twice** -- once with the deterministic default,
   once with Gemma -- and compares. The trail and the step count are
@@ -233,6 +240,15 @@ Two things the scenario is built to show:
   an empty reply: rejected, counted, and replaced with the default. The step
   degrades; the route does not move. That is the difference between a model
   deciding *inside* a step and a model deciding *between* steps.
+- **It is what finally made `settle()` demonstrable.** The budget guard has
+  to decide before the provider reports, so it estimates from the characters
+  it can see. Gemma 4 E4B reasons before it answers, and `eval_count` bills
+  that reasoning: on this run, 708 tokens against an estimate of 50. The
+  estimate is not slightly off, it is off by an order of magnitude, and it
+  is wrong in the direction that matters. A ledger that kept the estimate
+  would under-report the bill by that much -- which is why the record
+  carries `tokens_actual` separately and leaves it `None` until a real
+  count arrives.
 
 ## Operating it for real
 

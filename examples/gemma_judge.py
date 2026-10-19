@@ -141,21 +141,40 @@ class GemmaJudge:
             return {}
 
         self.calls += 1
-        raw = self._chat(site["instruction"], context, site["schema"])
+        raw, eval_count = self._chat(site["instruction"], context, site["schema"])
         self._log(f"  model said  {raw!r}")
 
         value, problem = _coerce(prompt, raw)
         if problem is not None:
             self.fallbacks.append(f"{prompt}: {problem}")
-            fallback = dict(FALLBACKS[prompt])
-            self._log(f"  ! rejected ({problem}); falling back to {fallback}")
-            return fallback
+            value = dict(FALLBACKS[prompt])
+            self._log(f"  ! rejected ({problem}); falling back to {value}")
+
+        # Report on the call as well as answer it. ``consult`` settles its
+        # token estimate against ``tokens`` and records ``provider`` as what
+        # actually answered; both are stripped before the verdict reaches the
+        # node's report. ``text`` is what was generated, so the budget guard
+        # counts the real output rather than a re-serialised summary of it --
+        # and it stays the raw reply even on the fallback path, because those
+        # tokens were produced and billed whether or not the answer was usable.
+        value = dict(value)
+        value["provider"] = f"ollama:{self.model}"
+        value["text"] = raw
+        if eval_count is not None:
+            value["tokens"] = eval_count
         return value
 
     # -- transport ---------------------------------------------------------
 
-    def _chat(self, instruction: str, context: dict, schema: dict) -> str:
-        """One non-streaming ``/api/chat`` call. Returns the raw content."""
+    def _chat(self, instruction: str, context: dict, schema: dict) -> tuple[str, int | None]:
+        """One non-streaming ``/api/chat`` call.
+
+        Returns
+        -------
+        (content, eval_count)
+            The raw reply, and the provider's own count of the tokens it
+            generated -- ``None`` if this Ollama build did not report one.
+        """
         payload = {
             "model": self.model,
             "stream": False,
@@ -179,7 +198,11 @@ class GemmaJudge:
             raise OllamaUnavailable(f"HTTP {exc.code} from Ollama: {detail}") from exc
         except (urllib.error.URLError, TimeoutError, OSError) as exc:
             raise OllamaUnavailable(f"cannot reach Ollama at {self.base_url}: {exc}") from exc
-        return (body.get("message") or {}).get("content") or ""
+        count = body.get("eval_count")
+        return (
+            (body.get("message") or {}).get("content") or "",
+            count if isinstance(count, int) else None,
+        )
 
     def _log(self, line: str) -> None:
         if self.verbose:

@@ -49,9 +49,21 @@ def show(state: dict) -> None:
             print(f"  {key:<12} {state[key]}")
     calls = state.get("calls") or []
     if calls:
-        routed = ", ".join(f"{c['agent']}->{c['provider']}" for c in calls)
-        print(f"  model calls  {len(calls)}  ({routed})")
-        print(f"  tokens       {state.get('tokens_used')} / {state.get('budget_tokens')}")
+        # `provider` is what the rules selected; `provider_used` is what
+        # answered. Print both when they differ -- an injected judge may
+        # ignore the selection, and reporting the choice as the outcome
+        # would make the ledger say something it does not know.
+        parts = []
+        for c in calls:
+            used = c.get("provider_used")
+            if used and used != c["provider"]:
+                parts.append(f"{c['agent']}->{c['provider']} but answered by {used}")
+            else:
+                parts.append(f"{c['agent']}->{c['provider']}")
+        print(f"  model calls  {len(calls)}  ({', '.join(parts)})")
+        settled = sum(1 for c in calls if c.get("tokens_actual") is not None)
+        note = f"   ({settled}/{len(calls)} settled against the provider's count)"
+        print(f"  tokens       {state.get('tokens_used')} / {state.get('budget_tokens')}{note}")
 
 
 def pipeline(thread: str):
@@ -277,6 +289,15 @@ def scenario_gemma() -> None:
         print("  deployed?    never reached the deployer")
     else:
         print(f"  deployed?    {deployed}         <- still only because a human said yes")
+
+    est = sum(c["tokens_estimated"] for c in live.get("calls", []))
+    act = sum(c["tokens_actual"] or 0 for c in live.get("calls", []))
+    if act:
+        print(f"\n  estimated    {est} tokens   <- the char heuristic, from the visible reply")
+        print(f"  provider     {act} tokens   <- eval_count, which includes Gemma's")
+        print(f"               hidden reasoning: {act / est:.0f}x the estimate.")
+        print("               This is what settle() is for. A ledger left holding")
+        print("               the estimate would under-report the bill by that much.")
 
     print(f"\n  model calls  {judge.calls}")
     if judge.fallbacks:

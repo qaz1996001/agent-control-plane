@@ -42,6 +42,13 @@ LEDGER = quota.Ledger()
 #: health view; the selection rules it feeds do not change.
 HEALTHY: frozenset[str] = providers.ALL_HEALTHY
 
+#: Keys a ``Judge`` may return to report on the call rather than answer
+#: it: ``tokens`` is the provider's real usage count, which :func:`consult`
+#: settles the estimate against, and ``provider`` is what actually
+#: answered. Both land in the :class:`~agentcp.audit.CallRecord` and are
+#: stripped from the verdict, so a node's report stays a report.
+_JUDGE_META: frozenset[str] = frozenset({"tokens", "provider"})
+
 
 class Judge(Protocol):
     """A model-backed decision. Injected so it can be faked in tests."""
@@ -135,7 +142,7 @@ def consult(
     text = verdict.get("text")
     if text is None:
         text = json.dumps(
-            {k: v for k, v in verdict.items() if k != "tokens"}, ensure_ascii=False
+            {k: v for k, v in verdict.items() if k not in _JUDGE_META}, ensure_ascii=False
         )
     text = str(text)
 
@@ -156,6 +163,7 @@ def consult(
         sensitivity=sensitivity,
         route_reason=choice.reason,
         tokens_estimated=stream.used,
+        provider_used=str(verdict.get("provider") or ""),
         masked=bool(mapping),
         truncated=truncated,
     )
@@ -172,7 +180,11 @@ def consult(
         refused = str(exc)
         record = CallRecord(**{**record.as_dict(), "refused": refused})
 
-    verdict = dict(verdict)
+    # The meta keys are facts about the *call*, and the record is where
+    # call facts live. Leaving them in the verdict would copy them into
+    # the node's report as well, where they would be a second, staler
+    # answer to a question the ledger already answers.
+    verdict = {k: v for k, v in verdict.items() if k not in _JUDGE_META}
     if "text" in verdict:
         # Only rewrite prose the judge actually returned; a structured
         # answer must not grow a field it never had.

@@ -50,8 +50,16 @@ def register_stubs() -> None:
          {"labelled": ["bug", "auth"]}),
         ("write_plan", "Store: persist the plan",
          {"steps": ["reproduce locally", "fix null session", "add regression test"]}),
+        # The author address and the build host are here so that masking is
+        # exercised by a real run, not only by the `mask` scenario calling
+        # privacy.mask directly. The diff is the right fixture to carry
+        # them: reviewer_node puts only the *verdict* into state, so these
+        # values reach the model's context and never reach a checkpoint.
+        # (triage_report, by contrast, stores the whole ticket, so PII in
+        # the ticket fixture would be written into checkpointed state.)
         ("read_diff", "GitHub: compare base..head",
-         {"pr": 318, "files": 2, "additions": 34, "deletions": 6}),
+         {"pr": 318, "files": 2, "additions": 34, "deletions": 6,
+          "author": "sam.okafor@example.com", "built_on": "ci-runner-4.internal"}),
         ("post_comment", "GitHub: create review comment",
          {"posted": True}),
         ("read_plan", "Store: load the plan",

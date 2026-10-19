@@ -36,6 +36,13 @@ class CallRecord:
     provider, or no quota left. A refusal is recorded for the same
     reason a failure is: "nothing happened" and "we declined to let it
     happen" are different answers to the same question.
+
+    ``provider`` is the provider the rules *selected*; ``provider_used``
+    is what actually answered. They are two facts and the ledger keeps
+    both, because an injected ``Judge`` is free to ignore the selection --
+    and a record that reports the choice as though it were the outcome
+    answers "who saw this data" with a guess. Empty ``provider_used``
+    means the judge did not say, not that the two agree.
     """
 
     trace_id: str
@@ -45,6 +52,7 @@ class CallRecord:
     route_reason: str
     tokens_estimated: int
     tokens_actual: int | None = None
+    provider_used: str = ""
     masked: bool = False
     truncated: bool = False
     refused: str = ""
