@@ -65,10 +65,11 @@ class PipelineState(TypedDict, total=False):
     requires_approval : bool
         Set by an agent that wants a human to look before the next step.
     human_decision : dict or None
-        ``{"approve": bool, "reason": str}``. Written by resuming an
-        interrupted run; no node in this package writes it. That is a
-        convention of the nodes, not a guarantee of this type -- see
-        ``docs/errata.md``, entry A1.
+        ``{"approve": bool, "reason": str}``. Written only by resuming an
+        interrupted run: it is in ``PROTECTED``, so a node that returns it
+        raises rather than being quietly ignored. It was a convention of
+        the nodes until that guard existed -- see ``docs/errata.md``,
+        entry A1.
     step_count, max_steps : int
         Runaway guard. The graph stops when step_count reaches max_steps.
     completed : list[str]

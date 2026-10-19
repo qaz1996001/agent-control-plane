@@ -9,7 +9,7 @@ counter, a substitution, a veto and an interrupt — not things a model is
 asked to get right.
 
 ```bash
-uv run --with pytest --with langgraph pytest -q                    # 97 passed
+uv run --with pytest --with langgraph pytest -q                    # 116 passed
 uv run --with langgraph python examples/run_pipeline.py            # 10 scenarios
 ```
 
@@ -191,6 +191,8 @@ approve -- a human says yes, and only then does it deploy
   trail        triage -> planner -> reviewer -> approval_gate -> deployer
   steps        5 / 8
   deploy_report {'deployed': True, 'result': {'workflow': 'deploy.yml', 'run_id': 99214, ...}}
+  model calls  2  (triage->local-small unmasked, reviewer->local-small masked)
+  tokens       15 / 2000   (0/2 settled against the provider's count)
 
   tools called ['read_ticket', 'write_plan', 'read_diff', 'deploy']
 ```

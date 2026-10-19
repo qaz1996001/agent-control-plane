@@ -45,7 +45,7 @@
   </defs>
   <rect data-graph-role="background" width="1200.0" height="760.0" fill="#ffffff"/>
   <text x="600.0" y="56" text-anchor="middle" class="title">資料狀態：PipelineState 的生命週期</text>
-  <text x="600.0" y="82" text-anchor="middle" class="subtitle">18 個欄位，每一格都有明確的寫入者；human_decision 只有 resume 寫得到</text>
+  <text x="600.0" y="82" text-anchor="middle" class="subtitle">18 個欄位，依「什麼時候被寫」分組；human_decision 只有 resume 寫得到</text>
   <g id="fields" data-graph-role="container" data-container-id="fields" data-semantic-role="boundary" data-graph-bounds="620,92,1156,632">
   <rect data-graph-role="container" x="620.0" y="92.0" width="536.0" height="540.0" rx="16.0" fill="none" stroke="#3b82f6" stroke-width="1.4" stroke-dasharray="6 5"/>
   <text x="638.0" y="116.0" class="section">欄位與寫入者</text>
@@ -88,8 +88,8 @@
   </g>
   <g id="node-f2" data-graph-role="node" data-node-id="f2" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="644,262,1132,362">
   <rect x="644.0" y="262.0" width="488.0" height="100.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.8" filter="url(#shadowSoft)"/>
-  <text data-text-role="title" data-full-text="節點寫入" data-text-max-width="464.0" x="888.0" y="312.0" text-anchor="middle" class="node-title" font-size="18">節點寫入</text>
-  <text data-text-role="subtitle" data-full-text="四個 report, next_agent, step_count, completed, calls, tokens_used" data-text-max-width="464.0" x="888.0" y="334.0" text-anchor="middle" class="node-sub" font-size="12">四個 report, next_agent, step_count, completed, calls, tokens_used</text>
+  <text data-text-role="title" data-full-text="節點寫入（分組，非逐格指名）" data-text-max-width="464.0" x="888.0" y="312.0" text-anchor="middle" class="node-title" font-size="18">節點寫入（分組，非逐格指名）</text>
+  <text data-text-role="subtitle" data-full-text="report 各一個；next_agent 四、step/completed 五、calls/tokens 二" data-text-max-width="464.0" x="888.0" y="334.0" text-anchor="middle" class="node-sub" font-size="12">report 各一個；next_agent 四、step/completed 五、calls/tokens 二</text>
   </g>
   <g id="node-f3" data-graph-role="node" data-node-id="f3" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="644,402,1132,474">
   <rect x="644.0" y="402.0" width="488.0" height="72.0" rx="10.0" fill="#faf5ff" stroke="#8b5cf6" stroke-width="1.8" filter="url(#shadowSoft)"/>
@@ -98,8 +98,8 @@
   </g>
   <g id="node-f4" data-graph-role="node" data-node-id="f4" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="644,514,1132,570">
   <rect x="644.0" y="514.0" width="488.0" height="56.0" rx="10.0" fill="#fce8e6" stroke="#a50e0e" stroke-width="1.8" filter="url(#shadowSoft)"/>
-  <text data-text-role="title" data-full-text="沒有人跨寫" data-text-max-width="464.0" x="888.0" y="542.0" text-anchor="middle" class="node-title" font-size="18">沒有人跨寫</text>
-  <text data-text-role="subtitle" data-full-text="代理不得寫別人的報告，也不得寫 human_decision" data-text-max-width="464.0" x="888.0" y="564.0" text-anchor="middle" class="node-sub" font-size="12">代理不得寫別人的報告，也不得寫 human_decision</text>
+  <text data-text-role="title" data-full-text="結構，不只是慣例" data-text-max-width="464.0" x="888.0" y="542.0" text-anchor="middle" class="node-title" font-size="18">結構，不只是慣例</text>
+  <text data-text-role="subtitle" data-full-text="節點寫 PROTECTED 欄位會拋錯 —— 由 build_graph 的守衛擋下" data-text-max-width="464.0" x="888.0" y="564.0" text-anchor="middle" class="node-sub" font-size="12">節點寫 PROTECTED 欄位會拋錯 —— 由 build_graph 的守衛擋下</text>
   </g>
   <g id="legend" data-graph-role="legend">
     <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="26" y="648" width="362" height="46" rx="10" fill="none" stroke="none"/>

@@ -5,7 +5,7 @@
 一個可以直接執行的小專案，用來示範一個主張：**Agent 的控制平面應該是普通的程式碼。** 路由、權限、預算、遮罩、供應商選擇、人工核可，分別就是一張查找表、一份白名單、一個計數器、一次字串代換、一道否決、一次中斷——不是拿去問模型、期待它每次都答對的東西。
 
 ```bash
-uv run --with pytest --with langgraph pytest -q                    # 97 passed
+uv run --with pytest --with langgraph pytest -q                    # 116 passed
 uv run --with langgraph python examples/run_pipeline.py            # 10 個情境
 ```
 
@@ -111,6 +111,8 @@ approve -- a human says yes, and only then does it deploy
   trail        triage -> planner -> reviewer -> approval_gate -> deployer
   steps        5 / 8
   deploy_report {'deployed': True, 'result': {'workflow': 'deploy.yml', ...}}
+  model calls  2  (triage->local-small unmasked, reviewer->local-small masked)
+  tokens       15 / 2000   (0/2 settled against the provider's count)
 
   tools called ['read_ticket', 'write_plan', 'read_diff', 'deploy']
 ```

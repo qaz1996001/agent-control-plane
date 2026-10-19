@@ -73,12 +73,24 @@ The diagram groups those under "written by nodes" rather than naming each,
 so it shows *when* a field is written rather than by whom.
 
 The row that matters is `human_decision`: the only thing that writes it
-today is a resume carrying a decision, and no node writes it. That is a
-convention of the nodes, not yet a property of the state — `PipelineState`
-is a bare `TypedDict` and `graph.py` merges a node's patch into state
-unchanged, so a node that returned `human_decision` would forge a human
-approval and nothing would reject it. The gap, and the reducer that is to
-close it, are entry A1 in [`errata.md`](errata.md).
+is a resume carrying a decision, and a node that tries raises
+`ProtectedFieldWritten`. That is now a property of the graph rather than
+of the nodes that happen to exist — `build_graph` wraps every node and
+refuses a patch naming anything in `state.PROTECTED`, which is also what
+protects `max_steps`, `sensitivity`, `tenant` and `trace_id`.
+
+It was a convention until recently: `PipelineState` is a bare `TypedDict`,
+`graph.py` merged a node's patch in unchanged, and a node that wrote
+`human_decision` forged a human approval that nothing rejected — resuming
+with *no* decision then deployed, straight through the check that is
+supposed to prevent exactly that. Entry A1 in [`errata.md`](errata.md)
+keeps the record, because how a claim came to outrun its evidence is
+worth more than the repaired sentence.
+
+`next_agent` is deliberately not protected: handing off is what a node is
+for. A node can still route past the gate, and what stops the deploy is
+the deployer's own refusal — the decision it needs is the field that
+cannot be forged.
 
 Four fields are set once at `new_state` and only read afterwards —
 `trace_id`, `tenant`, `sensitivity`, `max_steps`. They are the run's
@@ -108,10 +120,10 @@ and there are more ways to decline than to proceed.
 
 | View | Tests that pin it |
 |---|---|
-| Control flow | `test_routing.py`, `test_handoff.py` |
+| Control flow | `test_routing.py`, `test_handoff.py`, `test_judgement_boundary.py` |
 | Data flow | `test_tool_access.py`, `test_privacy.py`, `test_providers.py` |
-| Data state | `test_hitl.py`, `test_audit.py` |
-| Scenarios | all twelve test files |
+| Data state | `test_hitl.py`, `test_audit.py`, `test_state_protection.py` |
+| Scenarios | all fourteen test files |
 
 What this page does not cover is the boundary itself — which
 capabilities of the original system are here, which were left out, and

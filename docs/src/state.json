@@ -8,7 +8,7 @@
  "width": 1200,
  "height": 760,
  "title": "資料狀態：PipelineState 的生命週期",
- "subtitle": "18 個欄位，依「什麼時候被寫」分組；human_decision 目前只有 resume 寫得到",
+ "subtitle": "18 個欄位，依「什麼時候被寫」分組；human_decision 只有 resume 寫得到",
  "containers": [
   {
    "id": "fields",
@@ -67,7 +67,7 @@
    "width": 540,
    "height": 64,
    "label": "4　resume 注入決定",
-   "sublabel": "目前唯一會寫 human_decision 的時機",
+   "sublabel": "唯一能寫 human_decision 的時機",
    "fill": "#faf5ff",
    "stroke": "#8b5cf6"
   },
@@ -104,7 +104,7 @@
    "width": 488,
    "height": 100,
    "label": "節點寫入（分組，非逐格指名）",
-   "sublabel": "四個 report 各一個寫入者；next_agent 四個、step_count/completed 五個、calls/tokens_used 兩個",
+   "sublabel": "report 各一個；next_agent 四、step/completed 五、calls/tokens 二",
    "fill": "#eff6ff",
    "stroke": "#3b82f6"
   },
@@ -115,7 +115,7 @@
    "y": 402,
    "width": 488,
    "height": 72,
-   "label": "目前只有 resume 寫入",
+   "label": "只有 resume 寫入",
    "sublabel": "human_decision",
    "fill": "#faf5ff",
    "stroke": "#8b5cf6"
@@ -127,8 +127,8 @@
    "y": 514,
    "width": 488,
    "height": 56,
-   "label": "慣例，還不是結構",
-   "sublabel": "沒有節點跨寫報告或 human_decision —— 但 state 型別也還沒阻止",
+   "label": "結構，不只是慣例",
+   "sublabel": "節點寫 PROTECTED 欄位會拋錯 —— 由 build_graph 的守衛擋下",
    "fill": "#fce8e6",
    "stroke": "#a50e0e"
   }
