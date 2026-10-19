@@ -11,9 +11,12 @@ ignore    resumed with no decision at all -- still nothing deploys
 rework    the reviewer sends it back; the loop ends at the step guard
 budget    an over-long model response is cut off mid-stream
 gate      a release is blocked by the eval gate, then allowed
+mask      what the model is shown, and who may see it unmasked again
+residency restricted content refuses rather than leaving the deployment
+quota     a tenant runs out of allowance; the run refuses and records it
 gemma     the same run as `approve`, with a real local model judging
 
-The first six need no model and no network. `gemma` wants a local Ollama
+The first nine need no model and no network. `gemma` wants a local Ollama
 serving Gemma 4 E4B (`ollama pull gemma4:e4b`); without it the scenario
 explains what is missing and skips, so the default run still works offline.
 """
@@ -26,7 +29,7 @@ from langgraph.types import Command
 
 import adapters
 import gemma_judge
-from agentcp import drift, evals
+from agentcp import agents, drift, evals, privacy, providers, quota
 from agentcp.budget import BudgetedStream, BudgetExceeded
 from agentcp.graph import build_graph
 from agentcp.state import new_state
@@ -44,13 +47,18 @@ def show(state: dict) -> None:
     for key in ("triage_report", "plan_report", "review_report", "deploy_report"):
         if key in state:
             print(f"  {key:<12} {state[key]}")
+    calls = state.get("calls") or []
+    if calls:
+        routed = ", ".join(f"{c['agent']}->{c['provider']}" for c in calls)
+        print(f"  model calls  {len(calls)}  ({routed})")
+        print(f"  tokens       {state.get('tokens_used')} / {state.get('budget_tokens')}")
 
 
 def pipeline(thread: str):
     adapters.reset()
     app = build_graph()
     cfg = {"configurable": {"thread_id": thread}}
-    app.invoke(new_state("ticket_opened", {"ticket": 4821, "pr": 318}), cfg)
+    app.invoke(new_state("ticket_opened", {"ticket": 4821, "pr": 318}, trace_id=thread), cfg)
     return app, cfg
 
 
@@ -89,7 +97,9 @@ def scenario_rework() -> None:
     app = build_graph(judge=lambda prompt, ctx: {"approved": False, "comments": ["add tests"]})
     cfg = {"configurable": {"thread_id": "rework"}}
     out = app.invoke(
-        new_state("ticket_opened", {"ticket": 4821, "pr": 318}, max_steps=6), cfg
+        new_state("ticket_opened", {"ticket": 4821, "pr": 318},
+                  max_steps=6, trace_id="rework"),
+        cfg,
     )
     show(out)
     print("\n  the loop did not run forever; max_steps decided when to stop")
@@ -132,6 +142,72 @@ def scenario_gate() -> None:
         print(f"  drift @{current:<5} {v.status:<18} z={v.z if v.z is None else round(v.z, 2)}")
 
 
+def scenario_mask() -> None:
+    head("mask -- the model sees placeholders; restoring takes a permission")
+    text = ("reporter sam.okafor@example.com hit a 500 on db-prod-3.internal; "
+            "@rhea-ops is on call")
+    masked, mapping = privacy.mask(text, "run-7")
+    print(f"  original     {text}")
+    print(f"  to the model {masked}")
+    print(f"  leaks?       {privacy.leaks(masked, mapping)}   <- checked over the whole string")
+
+    ops = privacy.Viewer("ops", may_unmask=True)
+    print()
+    print(f"  as ops       {privacy.restore(masked, mapping, trace_id='run-7', viewer=ops)}")
+    try:
+        privacy.restore(masked, mapping, trace_id="run-7", viewer=privacy.Viewer("anon"))
+    except privacy.RestoreDenied as exc:
+        print(f"  as anon      refused: {exc}")
+    try:
+        privacy.restore(masked, mapping, trace_id="run-9", viewer=ops)
+    except privacy.TraceMismatch as exc:
+        print(f"  wrong run    refused: {exc}")
+    print()
+    print("  the map stays in process -- it is never written into state,")
+    print("  because state gets checkpointed and a checkpoint holding the")
+    print("  real values would undo the masking at rest.")
+
+
+def scenario_residency() -> None:
+    head("residency -- sensitivity is a veto, not a preference")
+    for sensitivity, healthy, label in [
+        ("open", providers.ALL_HEALTHY, "everything up"),
+        ("restricted", providers.ALL_HEALTHY, "everything up"),
+        ("open", {"cloud-small"}, "only remote up"),
+        ("restricted", {"cloud-small"}, "only remote up"),
+    ]:
+        try:
+            choice = providers.choose(sensitivity, "low", healthy)
+            print(f"  {sensitivity:<11}{label:<17} -> {choice.provider.name}")
+        except providers.NoEligibleProvider as exc:
+            print(f"  {sensitivity:<11}{label:<17} -> refused: {exc}")
+    print()
+    print("  the last row is the point: the only healthy provider was")
+    print("  remote, and the answer was still no.")
+
+
+def scenario_quota() -> None:
+    head("quota -- a tenant runs out; the run declines and says so")
+    adapters.reset()
+    agents.LEDGER = quota.Ledger()
+    agents.LEDGER.charge("trial", quota.limit_for("trial"))
+    print(f"  tenant       'trial', limit {quota.limit_for('trial')} tokens, already spent")
+
+    app = build_graph()
+    cfg = {"configurable": {"thread_id": "quota"}}
+    out = app.invoke(
+        new_state("ticket_opened", {"ticket": 4821, "pr": 318},
+                  tenant="trial", trace_id="quota"),
+        cfg,
+    )
+    show(out)
+    print()
+    print(f"  call records {out.get('calls')}")
+    print("  the attempt is in the ledger even though no model ran --")
+    print("  \"nothing happened\" and \"we declined\" are different answers.")
+    agents.LEDGER = quota.Ledger()
+
+
 def _run_approving(thread: str, judge=None) -> dict:
     """Drive one run, approving at the gate if it gets that far.
 
@@ -143,7 +219,9 @@ def _run_approving(thread: str, judge=None) -> dict:
     adapters.reset()
     app = build_graph(judge=judge)
     cfg = {"configurable": {"thread_id": thread}}
-    out = app.invoke(new_state("ticket_opened", {"ticket": 4821, "pr": 318}), cfg)
+    out = app.invoke(
+        new_state("ticket_opened", {"ticket": 4821, "pr": 318}, trace_id=thread), cfg
+    )
     if app.get_state(cfg).next:
         out = app.invoke(Command(update={"human_decision": {"approve": True}}), cfg)
     return out
@@ -217,6 +295,9 @@ SCENARIOS = {
     "rework": scenario_rework,
     "budget": scenario_budget,
     "gate": scenario_gate,
+    "mask": scenario_mask,
+    "residency": scenario_residency,
+    "quota": scenario_quota,
     "gemma": scenario_gemma,
 }
 

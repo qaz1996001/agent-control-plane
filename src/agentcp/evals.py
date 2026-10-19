@@ -10,11 +10,21 @@ here follows from that:
   substring matching rather than real citations. A high value means the
   accuracy number is partly fictional. It explains another metric, so
   gating on it would be gating on an explanation.
+- **A result keeps the policy it was judged under.** Thresholds get
+  raised as a system matures. If a stored result only holds the verdict,
+  raising a bar silently rewrites history: last quarter's passes start
+  looking like they were judged against today's bar. Snapshotting the
+  thresholds into the result is what keeps "this passed" a statement
+  about a specific moment.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+
+#: Bumped by hand whenever THRESHOLDS changes, so two results are
+#: comparable only when their versions match.
+POLICY_VERSION = "1"
 
 #: metric -> minimum acceptable value.
 THRESHOLDS: dict[str, float] = {
@@ -37,11 +47,17 @@ class GoldenCase:
 
 @dataclass
 class GateResult:
-    """Outcome of one gate run."""
+    """Outcome of one gate run, with the policy that produced it.
+
+    ``policy`` is a copy, not a reference. A later edit to
+    :data:`THRESHOLDS` must not reach back into a decision already made.
+    """
 
     passed: bool
     metrics: dict[str, float]
     regressions: list[dict] = field(default_factory=list)
+    policy: dict[str, float] = field(default_factory=dict)
+    policy_version: str = ""
 
     def explain(self) -> str:
         if self.passed:
@@ -69,6 +85,12 @@ def find_regressions(metrics: dict[str, float]) -> list[dict]:
 
 
 def run_gate(metrics: dict[str, float]) -> GateResult:
-    """Evaluate *metrics* against the thresholds."""
+    """Evaluate *metrics* against the thresholds in force right now."""
     regressions = find_regressions(metrics)
-    return GateResult(passed=not regressions, metrics=dict(metrics), regressions=regressions)
+    return GateResult(
+        passed=not regressions,
+        metrics=dict(metrics),
+        regressions=regressions,
+        policy=dict(THRESHOLDS),
+        policy_version=POLICY_VERSION,
+    )

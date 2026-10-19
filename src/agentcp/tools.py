@@ -9,6 +9,12 @@ has a failure mode worse than a wrong answer:
 - **A tool never raises into the graph.** ``invoke`` converts any exception
   into ``{"error": ...}``, so a broken tool degrades one step instead of
   killing a run that may be holding a human approval.
+
+Permission has two dimensions, and they compose in one direction only.
+``ACCESS`` says what a role may ever do; ``TENANT_DENY`` subtracts from
+that per tenant. Subtraction rather than a second grant table, so a
+tenant rule can only ever narrow a role -- there is no combination of
+the two tables that gives a tenant something the role itself lacks.
 """
 
 from __future__ import annotations
@@ -51,6 +57,15 @@ ACCESS: dict[str, frozenset[str]] = {
     "deployer": frozenset({"read_plan", "deploy"}),
 }
 
+#: tenant -> tools withheld from it, whatever the agent's role allows.
+#: Absent tenant means "nothing withheld".
+TENANT_DENY: dict[str, frozenset[str]] = {
+    "trial": frozenset({"deploy"}),
+}
+
+#: The tenant used when a caller does not name one.
+DEFAULT_TENANT = "default"
+
 
 class ToolNotFound(KeyError):
     """No tool registered under that name."""
@@ -65,14 +80,25 @@ def register(tool: Tool) -> None:
     REGISTRY[tool.name] = tool
 
 
-def schemas_for(agent: str) -> list[dict]:
+def allowed(agent: str, tenant: str = DEFAULT_TENANT) -> frozenset[str]:
+    """What *agent* may call on behalf of *tenant*.
+
+    The single source both the offer and the check read. If these ever
+    became two computations, the schemas advertised to a model and the
+    permissions enforced at the call would drift the first time someone
+    edited one table.
+    """
+    return ACCESS.get(agent, frozenset()) - TENANT_DENY.get(tenant, frozenset())
+
+
+def schemas_for(agent: str, tenant: str = DEFAULT_TENANT) -> list[dict]:
     """OpenAI-style tool schemas for exactly what *agent* may call.
 
     Generated from the registry and the allow-list, so a tool cannot be
     offered to a model that is not permitted to run it. One source, so the
     offer and the check cannot drift apart.
     """
-    allowed = ACCESS.get(agent, frozenset())
+    allowed_names = allowed(agent, tenant)
     return [
         {
             "type": "function",
@@ -83,11 +109,11 @@ def schemas_for(agent: str) -> list[dict]:
             },
         }
         for t in REGISTRY.values()
-        if t.name in allowed
+        if t.name in allowed_names
     ]
 
 
-def invoke(agent: str, name: str, args: dict) -> dict:
+def invoke(agent: str, name: str, args: dict, tenant: str = DEFAULT_TENANT) -> dict:
     """Run *name* on behalf of *agent*, checking permission first.
 
     Returns
@@ -98,13 +124,16 @@ def invoke(agent: str, name: str, args: dict) -> dict:
     Raises
     ------
     ToolNotFound, AccessDenied
-        These are caller bugs, not tool failures, so they are not swallowed.
+        These are caller bugs or policy refusals, not tool failures, so
+        they are not swallowed into an error object.
     """
     if name not in REGISTRY:
         raise ToolNotFound(f"no tool {name!r}")
-    if name not in ACCESS.get(agent, frozenset()):
+    permitted = allowed(agent, tenant)
+    if name not in permitted:
         raise AccessDenied(
-            f"{agent!r} may not call {name!r}; allowed: {sorted(ACCESS.get(agent, []))}"
+            f"{agent!r} may not call {name!r} for tenant {tenant!r}; "
+            f"allowed: {sorted(permitted)}"
         )
     try:
         return REGISTRY[name].fn(args)

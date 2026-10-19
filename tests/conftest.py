@@ -1,6 +1,6 @@
 import pytest
 
-from agentcp import tools
+from agentcp import agents, quota, tools
 from agentcp.state import new_state
 
 
@@ -24,6 +24,14 @@ def registry():
     tools.REGISTRY.clear()
 
 
+@pytest.fixture(autouse=True)
+def ledger():
+    """A fresh per-tenant quota ledger for every test."""
+    agents.LEDGER = quota.Ledger()
+    yield agents.LEDGER
+    agents.LEDGER = quota.Ledger()
+
+
 @pytest.fixture
 def exploding_tool():
     """Replace a tool with one that raises, to test containment."""
@@ -37,4 +45,4 @@ def exploding_tool():
 
 @pytest.fixture
 def state():
-    return new_state("ticket_opened", {"ticket": 42, "pr": 7})
+    return new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="t-run-1")

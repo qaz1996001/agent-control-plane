@@ -1,190 +1,190 @@
 {
-  "schema_version": 1,
-  "mode": "architecture",
-  "template_type": "architecture",
-  "style": 1,
-  "quality_profile": "showcase",
-  "text_policy": "strict",
-  "width": 1000,
-  "height": 700,
-  "title": "資料狀態：PipelineState 的生命週期",
-  "subtitle": "14 個欄位，每一格都有明確的寫入者；human_decision 只有 resume 寫得到",
-  "containers": [
-    {
-      "id": "fields",
-      "x": 620,
-      "y": 92,
-      "width": 356,
-      "height": 480,
-      "label": "欄位與寫入者",
-      "stroke": "#3b82f6",
-      "fill": "none"
-    }
-  ],
-  "nodes": [
-    {
-      "id": "s1",
-      "kind": "rect",
-      "x": 36,
-      "y": 124,
-      "width": 540,
-      "height": 64,
-      "label": "1　new_state 建立",
-      "sublabel": "設下護欄：max_steps、budget_tokens",
-      "fill": "#ffffff",
-      "stroke": "#cbd5e1",
-      "flat": true
-    },
-    {
-      "id": "s2",
-      "kind": "double_rect",
-      "x": 36,
-      "y": 228,
-      "width": 540,
-      "height": 64,
-      "label": "2　節點逐一 patch",
-      "sublabel": "每個代理只寫自己的報告欄位",
-      "fill": "#eff6ff",
-      "stroke": "#3b82f6"
-    },
-    {
-      "id": "s3",
-      "kind": "rect",
-      "x": 36,
-      "y": 332,
-      "width": 540,
-      "height": 64,
-      "label": "3　interrupt 凍結",
-      "sublabel": "整個狀態寫進 checkpoint，執行停住",
-      "fill": "#fff7ed",
-      "stroke": "#f97316"
-    },
-    {
-      "id": "s4",
-      "kind": "rect",
-      "x": 36,
-      "y": 436,
-      "width": 540,
-      "height": 64,
-      "label": "4　resume 注入決定",
-      "sublabel": "唯一能寫 human_decision 的時機",
-      "fill": "#faf5ff",
-      "stroke": "#8b5cf6"
-    },
-    {
-      "id": "s5",
-      "kind": "rect",
-      "x": 36,
-      "y": 540,
-      "width": 540,
-      "height": 64,
-      "label": "5　終態",
-      "sublabel": "completed 保留完整執行順序",
-      "fill": "#e6f4ea",
-      "stroke": "#1e7e34"
-    },
-    {
-      "id": "f1",
-      "kind": "rect",
-      "x": 644,
-      "y": 128,
-      "width": 308,
-      "height": 76,
-      "label": "建立時寫入",
-      "sublabel": "trigger, payload, max_steps, budget_tokens",
-      "fill": "#ffffff",
-      "stroke": "#cbd5e1",
-      "flat": true
-    },
-    {
-      "id": "f2",
-      "kind": "rect",
-      "x": 644,
-      "y": 244,
-      "width": 308,
-      "height": 92,
-      "label": "節點寫入",
-      "sublabel": "四個 report, next_agent, step_count, completed",
-      "fill": "#eff6ff",
-      "stroke": "#3b82f6"
-    },
-    {
-      "id": "f3",
-      "kind": "rect",
-      "x": 644,
-      "y": 376,
-      "width": 308,
-      "height": 72,
-      "label": "只有 resume 寫入",
-      "sublabel": "human_decision",
-      "fill": "#faf5ff",
-      "stroke": "#8b5cf6"
-    },
-    {
-      "id": "f4",
-      "kind": "rect",
-      "x": 644,
-      "y": 488,
-      "width": 308,
-      "height": 56,
-      "label": "沒有人跨寫",
-      "sublabel": "代理不得寫別人的報告欄位",
-      "fill": "#fce8e6",
-      "stroke": "#a50e0e"
-    }
-  ],
-  "arrows": [
-    {
-      "id": "t1",
-      "source": "s1",
-      "target": "s2",
-      "source_port": "bottom",
-      "target_port": "top",
-      "flow": "control"
-    },
-    {
-      "id": "t2",
-      "source": "s2",
-      "target": "s3",
-      "source_port": "bottom",
-      "target_port": "top",
-      "flow": "control"
-    },
-    {
-      "id": "t3",
-      "source": "s3",
-      "target": "s4",
-      "source_port": "bottom",
-      "target_port": "top",
-      "flow": "feedback"
-    },
-    {
-      "id": "t4",
-      "source": "s4",
-      "target": "s5",
-      "source_port": "bottom",
-      "target_port": "top",
-      "flow": "write"
-    }
-  ],
-  "legend_orientation": "horizontal",
-  "legend_x": 36,
-  "legend_y": 628,
-  "legend": [
-    {
-      "flow": "control",
-      "label": "自動推進"
-    },
-    {
-      "flow": "feedback",
-      "label": "等待人工"
-    },
-    {
-      "flow": "write",
-      "label": "帶決定恢復"
-    }
-  ],
-  "footer": "沒有決定就恢復，deployer 仍然拒絕 —— 缺席不等於同意",
-  "footer_x": 36,
-  "footer_y": 670
+ "schema_version": 1,
+ "mode": "architecture",
+ "template_type": "architecture",
+ "style": 1,
+ "quality_profile": "showcase",
+ "text_policy": "strict",
+ "width": 1200,
+ "height": 760,
+ "title": "資料狀態：PipelineState 的生命週期",
+ "subtitle": "18 個欄位，每一格都有明確的寫入者；human_decision 只有 resume 寫得到",
+ "containers": [
+  {
+   "id": "fields",
+   "x": 620,
+   "y": 92,
+   "width": 536,
+   "height": 540,
+   "label": "欄位與寫入者",
+   "stroke": "#3b82f6",
+   "fill": "none"
+  }
+ ],
+ "nodes": [
+  {
+   "id": "s1",
+   "kind": "rect",
+   "x": 36,
+   "y": 124,
+   "width": 540,
+   "height": 64,
+   "label": "1　new_state 建立",
+   "sublabel": "設下身分與護欄：trace_id、tenant、sensitivity、max_steps、budget_tokens",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "s2",
+   "kind": "double_rect",
+   "x": 36,
+   "y": 228,
+   "width": 540,
+   "height": 64,
+   "label": "2　節點逐一 patch",
+   "sublabel": "每個代理只寫自己的報告欄位，並附加一筆 call 紀錄",
+   "fill": "#eff6ff",
+   "stroke": "#3b82f6"
+  },
+  {
+   "id": "s3",
+   "kind": "rect",
+   "x": 36,
+   "y": 332,
+   "width": 540,
+   "height": 64,
+   "label": "3　interrupt 凍結",
+   "sublabel": "整個狀態寫進 checkpoint，執行停住",
+   "fill": "#fff7ed",
+   "stroke": "#f97316"
+  },
+  {
+   "id": "s4",
+   "kind": "rect",
+   "x": 36,
+   "y": 436,
+   "width": 540,
+   "height": 64,
+   "label": "4　resume 注入決定",
+   "sublabel": "唯一能寫 human_decision 的時機",
+   "fill": "#faf5ff",
+   "stroke": "#8b5cf6"
+  },
+  {
+   "id": "s5",
+   "kind": "rect",
+   "x": 36,
+   "y": 540,
+   "width": 540,
+   "height": 64,
+   "label": "5　終態",
+   "sublabel": "completed 與 calls 保留完整執行順序與每一次模型呼叫",
+   "fill": "#e6f4ea",
+   "stroke": "#1e7e34"
+  },
+  {
+   "id": "f1",
+   "kind": "rect",
+   "x": 644,
+   "y": 128,
+   "width": 488,
+   "height": 92,
+   "label": "建立時寫入，之後只讀",
+   "sublabel": "trigger, payload, trace_id, tenant, sensitivity, max_steps, budget_tokens",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "f2",
+   "kind": "rect",
+   "x": 644,
+   "y": 262,
+   "width": 488,
+   "height": 100,
+   "label": "節點寫入",
+   "sublabel": "四個 report, next_agent, step_count, completed, calls, tokens_used",
+   "fill": "#eff6ff",
+   "stroke": "#3b82f6"
+  },
+  {
+   "id": "f3",
+   "kind": "rect",
+   "x": 644,
+   "y": 402,
+   "width": 488,
+   "height": 72,
+   "label": "只有 resume 寫入",
+   "sublabel": "human_decision",
+   "fill": "#faf5ff",
+   "stroke": "#8b5cf6"
+  },
+  {
+   "id": "f4",
+   "kind": "rect",
+   "x": 644,
+   "y": 514,
+   "width": 488,
+   "height": 56,
+   "label": "沒有人跨寫",
+   "sublabel": "代理不得寫別人的報告，也不得寫 human_decision",
+   "fill": "#fce8e6",
+   "stroke": "#a50e0e"
+  }
+ ],
+ "arrows": [
+  {
+   "id": "t1",
+   "source": "s1",
+   "target": "s2",
+   "source_port": "bottom",
+   "target_port": "top",
+   "flow": "control"
+  },
+  {
+   "id": "t2",
+   "source": "s2",
+   "target": "s3",
+   "source_port": "bottom",
+   "target_port": "top",
+   "flow": "control"
+  },
+  {
+   "id": "t3",
+   "source": "s3",
+   "target": "s4",
+   "source_port": "bottom",
+   "target_port": "top",
+   "flow": "feedback"
+  },
+  {
+   "id": "t4",
+   "source": "s4",
+   "target": "s5",
+   "source_port": "bottom",
+   "target_port": "top",
+   "flow": "write"
+  }
+ ],
+ "legend_orientation": "horizontal",
+ "legend_x": 36,
+ "legend_y": 662,
+ "legend": [
+  {
+   "flow": "control",
+   "label": "自動推進"
+  },
+  {
+   "flow": "feedback",
+   "label": "等待人工"
+  },
+  {
+   "flow": "write",
+   "label": "帶決定恢復"
+  }
+ ],
+ "footer": "沒有決定就恢復，deployer 仍然拒絕 —— 缺席不等於同意",
+ "footer_x": 36,
+ "footer_y": 724
 }

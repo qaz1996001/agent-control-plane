@@ -1,235 +1,374 @@
 {
-  "schema_version": 1,
-  "mode": "architecture",
-  "template_type": "architecture",
-  "style": 1,
-  "quality_profile": "showcase",
-  "text_policy": "strict",
-  "width": 1000,
-  "height": 790,
-  "title": "使用情境：examples/run_pipeline.py 的六個情境與結果",
-  "subtitle": "每個情境都可以直接執行，輸出就是下表右欄",
-  "nodes": [
-    {
-      "id": "n1",
-      "kind": "rect",
-      "x": 36,
-      "y": 100,
-      "width": 300,
-      "height": 60,
-      "label": "approve",
-      "sublabel": "人核可後才續跑",
-      "fill": "#ffffff",
-      "stroke": "#cbd5e1",
-      "flat": true
-    },
-    {
-      "id": "r1",
-      "kind": "rect",
-      "x": 400,
-      "y": 100,
-      "width": 560,
-      "height": 60,
-      "label": "部署成功",
-      "sublabel": "軌跡 triage → planner → reviewer → gate → deployer",
-      "fill": "#e6f4ea",
-      "stroke": "#1e7e34"
-    },
-    {
-      "id": "n2",
-      "kind": "rect",
-      "x": 36,
-      "y": 204,
-      "width": 300,
-      "height": 60,
-      "label": "reject",
-      "sublabel": "在閘門被拒",
-      "fill": "#ffffff",
-      "stroke": "#cbd5e1",
-      "flat": true
-    },
-    {
-      "id": "r2",
-      "kind": "rect",
-      "x": 400,
-      "y": 204,
-      "width": 560,
-      "height": 60,
-      "label": "不部署",
-      "sublabel": "deploy 工具從未被呼叫，並記下原因",
-      "fill": "#fce8e6",
-      "stroke": "#a50e0e"
-    },
-    {
-      "id": "n3",
-      "kind": "rect",
-      "x": 36,
-      "y": 308,
-      "width": 300,
-      "height": 60,
-      "label": "ignore",
-      "sublabel": "恢復時不帶決定",
-      "fill": "#ffffff",
-      "stroke": "#cbd5e1",
-      "flat": true
-    },
-    {
-      "id": "r3",
-      "kind": "rect",
-      "x": 400,
-      "y": 308,
-      "width": 560,
-      "height": 60,
-      "label": "一樣不部署",
-      "sublabel": "缺席不等於同意",
-      "fill": "#fce8e6",
-      "stroke": "#a50e0e"
-    },
-    {
-      "id": "n4",
-      "kind": "rect",
-      "x": 36,
-      "y": 412,
-      "width": 300,
-      "height": 60,
-      "label": "rework",
-      "sublabel": "審查一直退回",
-      "fill": "#ffffff",
-      "stroke": "#cbd5e1",
-      "flat": true
-    },
-    {
-      "id": "r4",
-      "kind": "rect",
-      "x": 400,
-      "y": 412,
-      "width": 560,
-      "height": 60,
-      "label": "停在步數上限",
-      "sublabel": "軌跡出現 planner 與 reviewer 交替，6 / 6 收手",
-      "fill": "#fff7ed",
-      "stroke": "#f97316"
-    },
-    {
-      "id": "n5",
-      "kind": "rect",
-      "x": 36,
-      "y": 516,
-      "width": 300,
-      "height": 60,
-      "label": "budget",
-      "sublabel": "回應超出輸出預算",
-      "fill": "#ffffff",
-      "stroke": "#cbd5e1",
-      "flat": true
-    },
-    {
-      "id": "r5",
-      "kind": "rect",
-      "x": 400,
-      "y": 516,
-      "width": 560,
-      "height": 60,
-      "label": "第 2 塊就切斷",
-      "sublabel": "估算 33 token，供應商回報 27 後覆寫",
-      "fill": "#fff7ed",
-      "stroke": "#f97316"
-    },
-    {
-      "id": "n6",
-      "kind": "rect",
-      "x": 36,
-      "y": 620,
-      "width": 300,
-      "height": 60,
-      "label": "gate",
-      "sublabel": "評測指標不過",
-      "fill": "#ffffff",
-      "stroke": "#cbd5e1",
-      "flat": true
-    },
-    {
-      "id": "r6",
-      "kind": "rect",
-      "x": 400,
-      "y": 620,
-      "width": 560,
-      "height": 60,
-      "label": "擋下，修好後放行",
-      "sublabel": "診斷指標 0.55 不擋；同指標漂移 z = −37.48",
-      "fill": "#eff6ff",
-      "stroke": "#3b82f6"
-    }
-  ],
-  "arrows": [
-    {
-      "id": "a1",
-      "source": "n1",
-      "target": "r1",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "write"
-    },
-    {
-      "id": "a2",
-      "source": "n2",
-      "target": "r2",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "feedback"
-    },
-    {
-      "id": "a3",
-      "source": "n3",
-      "target": "r3",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "feedback"
-    },
-    {
-      "id": "a4",
-      "source": "n4",
-      "target": "r4",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "control"
-    },
-    {
-      "id": "a5",
-      "source": "n5",
-      "target": "r5",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "control"
-    },
-    {
-      "id": "a6",
-      "source": "n6",
-      "target": "r6",
-      "source_port": "right",
-      "target_port": "left",
-      "flow": "read"
-    }
-  ],
-  "legend_orientation": "horizontal",
-  "legend_x": 36,
-  "legend_y": 740,
-  "legend": [
-    {
-      "flow": "write",
-      "label": "放行"
-    },
-    {
-      "flow": "feedback",
-      "label": "拒絕"
-    },
-    {
-      "flow": "control",
-      "label": "護欄生效"
-    },
-    {
-      "flow": "read",
-      "label": "品質閘門"
-    }
-  ]
+ "schema_version": 1,
+ "mode": "architecture",
+ "template_type": "architecture",
+ "style": 1,
+ "quality_profile": "showcase",
+ "text_policy": "strict",
+ "width": 1000,
+ "height": 1260,
+ "title": "使用情境：examples/run_pipeline.py 的十個情境與結果",
+ "subtitle": "每個情境都可以直接執行，輸出就是下表右欄",
+ "nodes": [
+  {
+   "id": "n1",
+   "kind": "rect",
+   "x": 36,
+   "y": 100,
+   "width": 300,
+   "height": 60,
+   "label": "approve",
+   "sublabel": "人核可後才續跑",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r1",
+   "kind": "rect",
+   "x": 400,
+   "y": 100,
+   "width": 560,
+   "height": 60,
+   "label": "部署成功",
+   "sublabel": "軌跡 triage → planner → reviewer → gate → deployer",
+   "fill": "#e6f4ea",
+   "stroke": "#1e7e34"
+  },
+  {
+   "id": "n2",
+   "kind": "rect",
+   "x": 36,
+   "y": 204,
+   "width": 300,
+   "height": 60,
+   "label": "reject",
+   "sublabel": "在閘門被拒",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r2",
+   "kind": "rect",
+   "x": 400,
+   "y": 204,
+   "width": 560,
+   "height": 60,
+   "label": "不部署",
+   "sublabel": "deploy 工具從未被呼叫，並記下原因",
+   "fill": "#fce8e6",
+   "stroke": "#a50e0e"
+  },
+  {
+   "id": "n3",
+   "kind": "rect",
+   "x": 36,
+   "y": 308,
+   "width": 300,
+   "height": 60,
+   "label": "ignore",
+   "sublabel": "恢復時不帶決定",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r3",
+   "kind": "rect",
+   "x": 400,
+   "y": 308,
+   "width": 560,
+   "height": 60,
+   "label": "一樣不部署",
+   "sublabel": "缺席不等於同意",
+   "fill": "#fce8e6",
+   "stroke": "#a50e0e"
+  },
+  {
+   "id": "n4",
+   "kind": "rect",
+   "x": 36,
+   "y": 412,
+   "width": 300,
+   "height": 60,
+   "label": "rework",
+   "sublabel": "審查一直退回",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r4",
+   "kind": "rect",
+   "x": 400,
+   "y": 412,
+   "width": 560,
+   "height": 60,
+   "label": "停在步數上限",
+   "sublabel": "軌跡出現 planner 與 reviewer 交替，6 / 6 收手",
+   "fill": "#fff7ed",
+   "stroke": "#f97316"
+  },
+  {
+   "id": "n5",
+   "kind": "rect",
+   "x": 36,
+   "y": 516,
+   "width": 300,
+   "height": 60,
+   "label": "budget",
+   "sublabel": "回應超出輸出預算",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r5",
+   "kind": "rect",
+   "x": 400,
+   "y": 516,
+   "width": 560,
+   "height": 60,
+   "label": "第 2 塊就切斷",
+   "sublabel": "估算 33 token，供應商回報 27 後覆寫",
+   "fill": "#fff7ed",
+   "stroke": "#f97316"
+  },
+  {
+   "id": "n6",
+   "kind": "rect",
+   "x": 36,
+   "y": 620,
+   "width": 300,
+   "height": 60,
+   "label": "gate",
+   "sublabel": "評測指標不過",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r6",
+   "kind": "rect",
+   "x": 400,
+   "y": 620,
+   "width": 560,
+   "height": 60,
+   "label": "擋下，修好後放行",
+   "sublabel": "診斷指標 0.55 不擋；同指標漂移 z = −37.48",
+   "fill": "#eff6ff",
+   "stroke": "#3b82f6"
+  },
+  {
+   "id": "n7",
+   "kind": "rect",
+   "x": 36,
+   "y": 724,
+   "width": 300,
+   "height": 60,
+   "label": "mask",
+   "sublabel": "模型看到的是什麼",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r7",
+   "kind": "rect",
+   "x": 400,
+   "y": 724,
+   "width": 560,
+   "height": 60,
+   "label": "遮罩後零外洩",
+   "sublabel": "還原給 ops；無權限 RestoreDenied；跨 run TraceMismatch",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "n8",
+   "kind": "rect",
+   "x": 36,
+   "y": 828,
+   "width": 300,
+   "height": 60,
+   "label": "residency",
+   "sublabel": "受限內容，只有遠端活著",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r8",
+   "kind": "rect",
+   "x": 400,
+   "y": 828,
+   "width": 560,
+   "height": 60,
+   "label": "拒絕，不降級",
+   "sublabel": "NoEligibleProvider —— 否決不會因為沒得選就讓步",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "n9",
+   "kind": "rect",
+   "x": 36,
+   "y": 932,
+   "width": 300,
+   "height": 60,
+   "label": "quota",
+   "sublabel": "租戶額度已用盡",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r9",
+   "kind": "rect",
+   "x": 400,
+   "y": 932,
+   "width": 560,
+   "height": 60,
+   "label": "停在 triage，1 / 8",
+   "sublabel": "沒有模型被呼叫，但這次嘗試仍寫進 calls",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "n10",
+   "kind": "rect",
+   "x": 36,
+   "y": 1036,
+   "width": 300,
+   "height": 60,
+   "label": "gemma",
+   "sublabel": "判斷換成真的本地模型",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  },
+  {
+   "id": "r10",
+   "kind": "rect",
+   "x": 400,
+   "y": 1036,
+   "width": 560,
+   "height": 60,
+   "label": "軌跡與步數不變",
+   "sublabel": "只有判斷的內容變了；路由兩次都是同一張查找表",
+   "fill": "#ffffff",
+   "stroke": "#cbd5e1",
+   "flat": true
+  }
+ ],
+ "arrows": [
+  {
+   "id": "a1",
+   "source": "n1",
+   "target": "r1",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "write"
+  },
+  {
+   "id": "a2",
+   "source": "n2",
+   "target": "r2",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "feedback"
+  },
+  {
+   "id": "a3",
+   "source": "n3",
+   "target": "r3",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "feedback"
+  },
+  {
+   "id": "a4",
+   "source": "n4",
+   "target": "r4",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "control"
+  },
+  {
+   "id": "a5",
+   "source": "n5",
+   "target": "r5",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "control"
+  },
+  {
+   "id": "a6",
+   "source": "n6",
+   "target": "r6",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "read"
+  },
+  {
+   "id": "a7",
+   "source": "n7",
+   "target": "r7",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "feedback"
+  },
+  {
+   "id": "a8",
+   "source": "n8",
+   "target": "r8",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "feedback"
+  },
+  {
+   "id": "a9",
+   "source": "n9",
+   "target": "r9",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "control"
+  },
+  {
+   "id": "a10",
+   "source": "n10",
+   "target": "r10",
+   "source_port": "right",
+   "target_port": "left",
+   "flow": "read"
+  }
+ ],
+ "legend_orientation": "horizontal",
+ "legend_x": 36,
+ "legend_y": 1156,
+ "legend": [
+  {
+   "flow": "write",
+   "label": "放行"
+  },
+  {
+   "flow": "feedback",
+   "label": "拒絕"
+  },
+  {
+   "flow": "control",
+   "label": "護欄生效"
+  },
+  {
+   "flow": "read",
+   "label": "品質閘門"
+  }
+ ],
+ "footer": "六個會跑完整流程的情境裡，四個的結果是「沒有部署」 —— 值得看的正是它拒絕的那些情況",
+ "footer_x": 36,
+ "footer_y": 1214
 }

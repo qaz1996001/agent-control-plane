@@ -8,6 +8,7 @@ can tell from this file alone what any node is allowed to produce.
 from __future__ import annotations
 
 from typing import Literal, TypedDict
+from uuid import uuid4
 
 Trigger = Literal[
     "ticket_opened",
@@ -47,7 +48,19 @@ class PipelineState(TypedDict, total=False):
     completed : list[str]
         Append-only audit trail of node names, in execution order.
     budget_tokens, tokens_used : int
-        Output-token budget for the whole run.
+        Output-token budget for the whole run, charged by every model
+        call the run makes.
+    trace_id : str
+        Ties this run's call records, mask mappings and logs together.
+    tenant : str
+        Whose run this is. Narrows the tool allow-list and picks the
+        quota the run is charged against.
+    sensitivity : str
+        ``"open"`` or ``"restricted"``. Restricted runs may not reach a
+        remote provider; see :mod:`agentcp.providers`.
+    calls : list[dict]
+        Append-only ledger, one entry per model call. Same shape of
+        guarantee as ``completed``: later nodes add, never rewrite.
     """
 
     trigger: Trigger
@@ -64,10 +77,19 @@ class PipelineState(TypedDict, total=False):
     completed: list[str]
     budget_tokens: int
     tokens_used: int
+    trace_id: str
+    tenant: str
+    sensitivity: str
+    calls: list[dict]
 
 
 def new_state(trigger: Trigger, payload: dict | None = None, **kw) -> PipelineState:
-    """Build a run's initial state with the guards already set."""
+    """Build a run's initial state with the guards already set.
+
+    Every guard gets a value here rather than being defaulted at the
+    point of use. A guard that is absent and a guard that is set to its
+    default should not be the same thing to read.
+    """
     base: PipelineState = {
         "trigger": trigger,
         "payload": payload or {},
@@ -76,6 +98,10 @@ def new_state(trigger: Trigger, payload: dict | None = None, **kw) -> PipelineSt
         "completed": [],
         "budget_tokens": kw.pop("budget_tokens", 2000),
         "tokens_used": 0,
+        "trace_id": kw.pop("trace_id", None) or uuid4().hex[:12],
+        "tenant": kw.pop("tenant", "default"),
+        "sensitivity": kw.pop("sensitivity", "open"),
+        "calls": [],
     }
     base.update(kw)  # type: ignore[typeddict-item]
     return base

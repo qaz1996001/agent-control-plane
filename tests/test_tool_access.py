@@ -2,7 +2,7 @@
 
 import pytest
 
-from agentcp import tools
+from agentcp import agents, tools
 from agentcp.tools import AccessDenied, ToolNotFound
 
 
@@ -41,3 +41,41 @@ def test_schemas_offered_match_the_allow_list():
 
 def test_unknown_agent_is_offered_nothing():
     assert tools.schemas_for("intruder") == []
+
+
+def test_a_tenant_rule_narrows_what_the_role_allows():
+    assert "deploy" in tools.allowed("deployer")
+    assert "deploy" not in tools.allowed("deployer", "trial")
+
+
+def test_a_tenant_rule_can_only_subtract_never_grant():
+    """No (agent, tenant) pair exceeds what the role itself allows."""
+    tenants = ["default", *tools.TENANT_DENY]
+    for agent, role_tools in tools.ACCESS.items():
+        for tenant in tenants:
+            assert tools.allowed(agent, tenant) <= role_tools
+
+
+def test_schemas_match_the_allow_list_for_every_agent_and_tenant():
+    tenants = ["default", *tools.TENANT_DENY]
+    for agent in tools.ACCESS:
+        for tenant in tenants:
+            offered = {s["function"]["name"] for s in tools.schemas_for(agent, tenant)}
+            assert offered == tools.allowed(agent, tenant), (agent, tenant)
+
+
+def test_invoking_a_tool_withheld_from_the_tenant_is_denied():
+    with pytest.raises(tools.AccessDenied) as exc:
+        tools.invoke("deployer", "deploy", {}, "trial")
+    assert "trial" in str(exc.value)
+
+
+def test_the_deployer_refuses_rather_than_crashing_on_a_tenant_denial():
+    """An approval already given must not be lost to a stack trace."""
+    from agentcp.state import new_state
+
+    state = new_state("ticket_opened", {"ticket": 1}, tenant="trial")
+    state["human_decision"] = {"approve": True}
+    patch = agents.deployer_node(state)
+    assert patch["deploy_report"]["deployed"] is False
+    assert "may not call 'deploy'" in patch["deploy_report"]["reason"]

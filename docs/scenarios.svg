@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 790" width="1000" height="790" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="showcase" data-max-bends-per-edge="2" data-max-total-bends="8" data-max-route-stretch="1.35" data-max-bridged-crossings="0" data-min-node-gap="40.0" data-min-container-gutter="20.0" data-min-label-clearance="4.0" data-min-segment-length="16.0">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1260" width="1000" height="1260" data-generator="fireworks-tech-graph" data-schema-version="1" data-text-metrics="heuristic-v1" data-style-id="1" data-visual-theme="Flat Icon" data-diagram-type="architecture" data-motion-scene="" data-semantic-profile="generic" data-semantic-valid="true" data-quality-profile="showcase" data-max-bends-per-edge="2" data-max-total-bends="8" data-max-route-stretch="1.35" data-max-bridged-crossings="0" data-min-node-gap="40.0" data-min-container-gutter="20.0" data-min-label-clearance="4.0" data-min-segment-length="16.0">
   <defs>
     <marker id="arrowA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
@@ -43,8 +43,8 @@
     .metric-value { font-size: 9.5px; font-weight: 700; fill: #111827; }
     </style>
   </defs>
-  <rect data-graph-role="background" width="1000.0" height="790.0" fill="#ffffff"/>
-  <text x="500.0" y="56" text-anchor="middle" class="title">使用情境：examples/run_pipeline.py 的六個情境與結果</text>
+  <rect data-graph-role="background" width="1000.0" height="1260.0" fill="#ffffff"/>
+  <text x="500.0" y="56" text-anchor="middle" class="title">使用情境：examples/run_pipeline.py 的十個情境與結果</text>
   <text x="500.0" y="82" text-anchor="middle" class="subtitle">每個情境都可以直接執行，輸出就是下表右欄</text>
   <path id="a1" data-graph-role="edge" data-edge-id="a1" data-source="n1" data-target="r1" data-edge-kind="flow" data-topic-id="" data-flow="write" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,130 L 400,130" fill="none" stroke="#10b981" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowB)"/>
   <path id="a2" data-graph-role="edge" data-edge-id="a2" data-source="n2" data-target="r2" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,234 L 400,234" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
@@ -52,6 +52,10 @@
   <path id="a4" data-graph-role="edge" data-edge-id="a4" data-source="n4" data-target="r4" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,442 L 400,442" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
   <path id="a5" data-graph-role="edge" data-edge-id="a5" data-source="n5" data-target="r5" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,546 L 400,546" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
   <path id="a6" data-graph-role="edge" data-edge-id="a6" data-source="n6" data-target="r6" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,650 L 400,650" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
+  <path id="a7" data-graph-role="edge" data-edge-id="a7" data-source="n7" data-target="r7" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,754 L 400,754" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="a8" data-graph-role="edge" data-edge-id="a8" data-source="n8" data-target="r8" data-edge-kind="flow" data-topic-id="" data-flow="feedback" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,858 L 400,858" fill="none" stroke="#ef4444" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowG)"/>
+  <path id="a9" data-graph-role="edge" data-edge-id="a9" data-source="n9" data-target="r9" data-edge-kind="flow" data-topic-id="" data-flow="control" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,962 L 400,962" fill="none" stroke="#7c3aed" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)"/>
+  <path id="a10" data-graph-role="edge" data-edge-id="a10" data-source="n10" data-target="r10" data-edge-kind="flow" data-topic-id="" data-flow="read" data-motion-role="" data-motion-stage="" data-motion-order="" data-protocol="" data-via="" data-critical-path-id="" data-critical-hop="" data-critical-hops="" data-critical="false" data-bends="0" data-route-stretch="1.0" data-bridges="" d="M 336,1066 L 400,1066" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowC)"/>
   <g id="node-n1" data-graph-role="node" data-node-id="n1" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,100,336,160">
   <rect x="36.0" y="100.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
   <text data-text-role="title" data-full-text="approve" data-text-max-width="276.0" x="186.0" y="130.0" text-anchor="middle" class="node-title" font-size="18">approve</text>
@@ -112,15 +116,58 @@
   <text data-text-role="title" data-full-text="擋下，修好後放行" data-text-max-width="536.0" x="680.0" y="650.0" text-anchor="middle" class="node-title" font-size="18">擋下，修好後放行</text>
   <text data-text-role="subtitle" data-full-text="診斷指標 0.55 不擋；同指標漂移 z = −37.48" data-text-max-width="536.0" x="680.0" y="672.0" text-anchor="middle" class="node-sub" font-size="12">診斷指標 0.55 不擋；同指標漂移 z = −37.48</text>
   </g>
+  <g id="node-n7" data-graph-role="node" data-node-id="n7" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,724,336,784">
+  <rect x="36.0" y="724.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="mask" data-text-max-width="276.0" x="186.0" y="754.0" text-anchor="middle" class="node-title" font-size="18">mask</text>
+  <text data-text-role="subtitle" data-full-text="模型看到的是什麼" data-text-max-width="276.0" x="186.0" y="776.0" text-anchor="middle" class="node-sub" font-size="12">模型看到的是什麼</text>
+  </g>
+  <g id="node-r7" data-graph-role="node" data-node-id="r7" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="400,724,960,784">
+  <rect x="400.0" y="724.0" width="560.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="遮罩後零外洩" data-text-max-width="536.0" x="680.0" y="754.0" text-anchor="middle" class="node-title" font-size="18">遮罩後零外洩</text>
+  <text data-text-role="subtitle" data-full-text="還原給 ops；無權限 RestoreDenied；跨 run TraceMismatch" data-text-max-width="536.0" x="680.0" y="776.0" text-anchor="middle" class="node-sub" font-size="12">還原給 ops；無權限 RestoreDenied；跨 run TraceMismatch</text>
+  </g>
+  <g id="node-n8" data-graph-role="node" data-node-id="n8" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,828,336,888">
+  <rect x="36.0" y="828.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="residency" data-text-max-width="276.0" x="186.0" y="858.0" text-anchor="middle" class="node-title" font-size="18">residency</text>
+  <text data-text-role="subtitle" data-full-text="受限內容，只有遠端活著" data-text-max-width="276.0" x="186.0" y="880.0" text-anchor="middle" class="node-sub" font-size="12">受限內容，只有遠端活著</text>
+  </g>
+  <g id="node-r8" data-graph-role="node" data-node-id="r8" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="400,828,960,888">
+  <rect x="400.0" y="828.0" width="560.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="拒絕，不降級" data-text-max-width="536.0" x="680.0" y="858.0" text-anchor="middle" class="node-title" font-size="18">拒絕，不降級</text>
+  <text data-text-role="subtitle" data-full-text="NoEligibleProvider —— 否決不會因為沒得選就讓步" data-text-max-width="536.0" x="680.0" y="880.0" text-anchor="middle" class="node-sub" font-size="12">NoEligibleProvider —— 否決不會因為沒得選就讓步</text>
+  </g>
+  <g id="node-n9" data-graph-role="node" data-node-id="n9" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,932,336,992">
+  <rect x="36.0" y="932.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="quota" data-text-max-width="276.0" x="186.0" y="962.0" text-anchor="middle" class="node-title" font-size="18">quota</text>
+  <text data-text-role="subtitle" data-full-text="租戶額度已用盡" data-text-max-width="276.0" x="186.0" y="984.0" text-anchor="middle" class="node-sub" font-size="12">租戶額度已用盡</text>
+  </g>
+  <g id="node-r9" data-graph-role="node" data-node-id="r9" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="400,932,960,992">
+  <rect x="400.0" y="932.0" width="560.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="停在 triage，1 / 8" data-text-max-width="536.0" x="680.0" y="962.0" text-anchor="middle" class="node-title" font-size="18">停在 triage，1 / 8</text>
+  <text data-text-role="subtitle" data-full-text="沒有模型被呼叫，但這次嘗試仍寫進 calls" data-text-max-width="536.0" x="680.0" y="984.0" text-anchor="middle" class="node-sub" font-size="12">沒有模型被呼叫，但這次嘗試仍寫進 calls</text>
+  </g>
+  <g id="node-n10" data-graph-role="node" data-node-id="n10" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,1036,336,1096">
+  <rect x="36.0" y="1036.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="gemma" data-text-max-width="276.0" x="186.0" y="1066.0" text-anchor="middle" class="node-title" font-size="18">gemma</text>
+  <text data-text-role="subtitle" data-full-text="判斷換成真的本地模型" data-text-max-width="276.0" x="186.0" y="1088.0" text-anchor="middle" class="node-sub" font-size="12">判斷換成真的本地模型</text>
+  </g>
+  <g id="node-r10" data-graph-role="node" data-node-id="r10" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="400,1036,960,1096">
+  <rect x="400.0" y="1036.0" width="560.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
+  <text data-text-role="title" data-full-text="軌跡與步數不變" data-text-max-width="536.0" x="680.0" y="1066.0" text-anchor="middle" class="node-title" font-size="18">軌跡與步數不變</text>
+  <text data-text-role="subtitle" data-full-text="只有判斷的內容變了；路由兩次都是同一張查找表" data-text-max-width="536.0" x="680.0" y="1088.0" text-anchor="middle" class="node-sub" font-size="12">只有判斷的內容變了；路由兩次都是同一張查找表</text>
+  </g>
   <g id="legend" data-graph-role="legend">
-    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="26" y="726" width="418" height="46" rx="10" fill="none" stroke="none"/>
-    <line data-graph-role="decoration" x1="36.0" y1="740.0" x2="66.0" y2="740.0" stroke="#10b981" stroke-width="2.4" marker-end="url(#arrowB)"/>
-    <text data-graph-role="decoration" x="76.0" y="744.0" class="legend">放行</text>
-    <line data-graph-role="decoration" x1="128.0" y1="740.0" x2="158.0" y2="740.0" stroke="#ef4444" stroke-width="2.4" marker-end="url(#arrowG)"/>
-    <text data-graph-role="decoration" x="168.0" y="744.0" class="legend">拒絕</text>
-    <line data-graph-role="decoration" x1="220.0" y1="740.0" x2="250.0" y2="740.0" stroke="#7c3aed" stroke-width="2.4" marker-end="url(#arrowA)"/>
-    <text data-graph-role="decoration" x="260.0" y="744.0" class="legend">護欄生效</text>
-    <line data-graph-role="decoration" x1="336.0" y1="740.0" x2="366.0" y2="740.0" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arrowC)"/>
-    <text data-graph-role="decoration" x="376.0" y="744.0" class="legend">品質閘門</text>
+    <rect id="legend-zone" data-graph-role="reserved" data-reserved-kind="legend" x="26" y="1142" width="418" height="46" rx="10" fill="none" stroke="none"/>
+    <line data-graph-role="decoration" x1="36.0" y1="1156.0" x2="66.0" y2="1156.0" stroke="#10b981" stroke-width="2.4" marker-end="url(#arrowB)"/>
+    <text data-graph-role="decoration" x="76.0" y="1160.0" class="legend">放行</text>
+    <line data-graph-role="decoration" x1="128.0" y1="1156.0" x2="158.0" y2="1156.0" stroke="#ef4444" stroke-width="2.4" marker-end="url(#arrowG)"/>
+    <text data-graph-role="decoration" x="168.0" y="1160.0" class="legend">拒絕</text>
+    <line data-graph-role="decoration" x1="220.0" y1="1156.0" x2="250.0" y2="1156.0" stroke="#7c3aed" stroke-width="2.4" marker-end="url(#arrowA)"/>
+    <text data-graph-role="decoration" x="260.0" y="1160.0" class="legend">護欄生效</text>
+    <line data-graph-role="decoration" x1="336.0" y1="1156.0" x2="366.0" y2="1156.0" stroke="#2563eb" stroke-width="2.4" marker-end="url(#arrowC)"/>
+    <text data-graph-role="decoration" x="376.0" y="1160.0" class="legend">品質閘門</text>
+  </g>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="36,1202,337,1218">
+  <text x="36.0" y="1214.0" class="footnote">六個會跑完整流程的情境裡，四個的結果是「沒有部署」 —— 值得看的正是它拒絕的那些情況</text>
   </g>
 </svg>
