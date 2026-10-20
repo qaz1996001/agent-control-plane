@@ -190,7 +190,7 @@ approve -- a human says yes, and only then does it publish
   paused at    ('approval_gate',)          <- the run is stopped, not polling
   published?   False
 
-  ...a curator approves in Slack / the web UI...
+  ...a reviewer approves in Slack / the web UI...
 
   trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8

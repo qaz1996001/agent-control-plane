@@ -3,7 +3,7 @@
 The contract is explicit on purpose. Each agent writes exactly one
 ``*_report`` key, and those reports are the only channel between agents --
 ``publisher_node`` reads ``index_report``, so a report is a published
-contract rather than an internal. A assessor can tell from this file alone
+contract rather than an internal. An assessor can tell from this file alone
 what any node is allowed to produce.
 """
 

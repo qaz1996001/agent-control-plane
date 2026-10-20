@@ -18,7 +18,7 @@ def test_agent_cannot_call_another_agents_tool():
     assert "publish" in str(e.value)
 
 
-def test_deploy_is_reachable_only_by_the_deployer():
+def test_publish_is_reachable_only_by_the_publisher():
     allowed = [a for a, t in tools.ACCESS.items() if "publish" in t]
     assert allowed == ["publisher"]
 
@@ -72,7 +72,7 @@ def test_invoking_a_tool_withheld_from_the_tenant_is_denied():
     assert "trial" in str(exc.value)
 
 
-def test_the_deployer_refuses_rather_than_crashing_on_a_tenant_denial():
+def test_the_publisher_refuses_rather_than_crashing_on_a_tenant_denial():
     """An approval already given must not be lost to a stack trace."""
     from agentcp.state import new_state
 

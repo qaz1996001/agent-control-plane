@@ -95,7 +95,7 @@ def scenario_approve() -> None:
     snap = app.get_state(cfg)
     print(f"  paused at    {snap.next}          <- the run is stopped, not polling")
     print(f"  published?   {'publish_report' in snap.values}")
-    print("\n  ...a curator approves in Slack / the web UI...\n")
+    print("\n  ...a reviewer approves in Slack / the web UI...\n")
     out = app.invoke(Command(update={"human_decision": {"approve": True}}), cfg)
     show(out)
     print(f"\n  tools called {[n for n, _ in adapters.CALLS]}")
@@ -126,7 +126,7 @@ def scenario_rework() -> None:
     # instead, and whether the loop happens at all becomes its answer --
     # which is the more honest demonstration, so it wins.
     app = build_graph(
-        judge=JUDGE or (lambda prompt, ctx: {"approved": False, "comments": ["add tests"]})
+        judge=JUDGE or (lambda prompt, ctx: {"approved": False, "comments": ["source refs missing"]})
     )
     cfg = {"configurable": {"thread_id": "rework"}}
     out = app.invoke(

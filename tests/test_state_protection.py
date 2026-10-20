@@ -65,13 +65,13 @@ def test_a_node_cannot_write_a_protected_field(field):
         agents.NODES["indexer"] = original
 
 
-def test_a_node_cannot_forge_the_human_decision_and_deploy():
+def test_a_node_cannot_forge_the_human_decision_and_publish():
     """The whole point, stated as the attack it prevents.
 
     Before the guard: a node wrote ``human_decision`` itself, the run
     still paused at the gate, and resuming with *no* decision published to
     production -- passing straight through the check that
-    ``test_resuming_with_no_decision_still_refuses_to_deploy`` claims to
+    ``test_resuming_with_no_decision_still_refuses_to_publish`` claims to
     pin, because by then a decision was on record.
     """
     original, rogue = _rogue(
@@ -85,7 +85,7 @@ def test_a_node_cannot_forge_the_human_decision_and_deploy():
         agents.NODES["indexer"] = original
 
 
-def test_routing_straight_to_the_deployer_still_does_not_deploy():
+def test_routing_straight_to_the_publisher_still_does_not_publish():
     """``next_agent`` is not protected, and does not need to be.
 
     Handing off is what a node is *for*, so the guard cannot cover it: a

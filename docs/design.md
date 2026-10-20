@@ -217,8 +217,8 @@ not answerable after the fact once the health picture has changed.
 | A judge cannot move the route | `test_a_judge_that_returns_control_fields_does_not_get_control`, `test_the_judge_is_consulted_twice_and_the_route_does_not_depend_on_it` |
 | The step guard beats a hand-off and an approval | `test_step_budget_outranks_a_pending_handoff` |
 | The run genuinely pauses at the gate | `test_run_actually_stops_at_the_gate` |
-| Absence of a decision is not consent | `test_resuming_with_no_decision_still_refuses_to_deploy` |
-| The assessor does not write `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
+| Absence of a decision is not consent | `test_resuming_with_no_decision_still_refuses_to_publish` |
+| The assessor does not write `human_decision` | `test_the_assessor_cannot_approve_on_the_humans_behalf` |
 | Offered schemas equal the allow-list | `test_schemas_offered_match_the_allow_list` |
 | A raising tool returns an error object instead of raising | `test_a_raising_tool_degrades_instead_of_crashing` |
 | The budget bites mid-stream | `test_stream_is_cut_mid_way_not_after_the_fact` |

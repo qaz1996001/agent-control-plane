@@ -47,7 +47,8 @@ SEVERITIES = ["low", "normal", "high", "critical"]
 CALL_SITES = {
     "classify severity": {
         "instruction": (
-            "You are triaging a bug document. Reply with its severity, "
+            "You are triaging a document submitted to a retrieval corpus. "
+            "Reply with its severity, "
             f"one of: {', '.join(SEVERITIES)}."
         ),
         "schema": {
@@ -58,7 +59,8 @@ CALL_SITES = {
     },
     "review draft": {
         "instruction": (
-            "You are reviewing a pull request. Decide whether it may proceed. "
+            "You are assessing a draft index entry. Decide whether it may be "
+            "published. "
             "Reply with approved (true/false) and a short list of comments."
         ),
         "schema": {

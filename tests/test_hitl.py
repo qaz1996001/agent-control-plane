@@ -20,13 +20,13 @@ def test_run_actually_stops_at_the_gate():
     assert "publisher" not in snap.values["completed"]
 
 
-def test_nothing_deploys_while_the_run_is_paused():
+def test_nothing_is_published_while_the_run_is_paused():
     app = build_graph()
     snap = _run_to_gate(app, CFG)
     assert "publish_report" not in snap.values
 
 
-def test_approval_lets_the_run_finish_and_deploy():
+def test_approval_lets_the_run_finish_and_publish():
     app = build_graph()
     cfg = {"configurable": {"thread_id": "approve"}}
     _run_to_gate(app, cfg)
@@ -35,7 +35,7 @@ def test_approval_lets_the_run_finish_and_deploy():
     assert out["completed"].count("approval_gate") == 1
 
 
-def test_rejection_finishes_the_run_without_deploying():
+def test_rejection_finishes_the_run_without_publishing():
     app = build_graph()
     cfg = {"configurable": {"thread_id": "reject"}}
     _run_to_gate(app, cfg)
@@ -46,7 +46,7 @@ def test_rejection_finishes_the_run_without_deploying():
     assert "no human approval" in out["publish_report"]["reason"]
 
 
-def test_resuming_with_no_decision_still_refuses_to_deploy():
+def test_resuming_with_no_decision_still_refuses_to_publish():
     """Absence of a decision is not consent.
 
     Resuming with ``None`` is LangGraph's "continue, no changes" form -- the
@@ -60,7 +60,7 @@ def test_resuming_with_no_decision_still_refuses_to_deploy():
     assert "no human approval" in out["publish_report"]["reason"]
 
 
-def test_the_reviewer_cannot_approve_on_the_humans_behalf():
+def test_the_assessor_cannot_approve_on_the_humans_behalf():
     """A machine-approved review sets requires_approval, never human_decision."""
     from agentcp.agents import assessor_node
     patch = assessor_node(new_state("assessment_requested", {"draft": 7}))

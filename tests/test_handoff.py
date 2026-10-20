@@ -24,7 +24,7 @@ def test_every_node_advances_the_step_count_and_trail():
     assert patch["completed"] == ["triage"]
 
 
-def test_a_rejecting_review_hands_back_to_the_planner():
+def test_a_rejecting_assessment_hands_back_to_the_indexer():
     patch = assessor_node(
         new_state("assessment_requested", {"draft": 7}),
         judge=lambda p, c: {"approved": False, "comments": ["missing tests"]},

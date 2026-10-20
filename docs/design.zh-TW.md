@@ -167,8 +167,8 @@ flowchart TD
 | judge 動不了路由 | `test_a_judge_that_returns_control_fields_does_not_get_control`、`test_the_judge_is_consulted_twice_and_the_route_does_not_depend_on_it` |
 | 步數上限壓過交棒與核可 | `test_step_budget_outranks_a_pending_handoff` |
 | 執行真的停在閘門 | `test_run_actually_stops_at_the_gate` |
-| 沒有決定不等於同意 | `test_resuming_with_no_decision_still_refuses_to_deploy` |
-| 評斷者不寫 `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
+| 沒有決定不等於同意 | `test_resuming_with_no_decision_still_refuses_to_publish` |
+| 評斷者不寫 `human_decision` | `test_the_assessor_cannot_approve_on_the_humans_behalf` |
 | 宣告的 schema 等於白名單 | `test_schemas_offered_match_the_allow_list` |
 | 工具拋錯回傳 error 物件，不往外拋 | `test_a_raising_tool_degrades_instead_of_crashing` |
 | 預算在串流中途就咬 | `test_stream_is_cut_mid_way_not_after_the_fact` |

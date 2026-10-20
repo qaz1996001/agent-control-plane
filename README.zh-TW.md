@@ -106,7 +106,7 @@ approve -- a human says yes, and only then does it publish
   paused at    ('approval_gate',)          <- 執行停住了，不是在輪詢
   published?   False
 
-  ...a curator approves in Slack / the web UI...
+  ...a reviewer approves in Slack / the web UI...
 
   trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8

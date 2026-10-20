@@ -171,7 +171,7 @@ def test_an_exhausted_budget_refuses_before_the_judge_is_called():
     assert call.record.truncated is False
 
 
-def test_a_budget_refusal_stops_the_run_rather_than_deploying():
+def test_a_budget_refusal_stops_the_run_rather_than_publishing():
     app = build_graph()
     cfg = {"configurable": {"thread_id": "audit-budget"}}
     out = app.invoke(
@@ -307,7 +307,7 @@ def test_every_judge_call_in_a_run_went_through_consult():
     assert len(judgements) == len(consults)
 
 
-def test_approve_path_records_no_call_for_the_gate_or_deployer():
+def test_approve_path_records_no_call_for_the_gate_or_publisher():
     app = run_to_gate()
     app.invoke(Command(update={"human_decision": {"approve": True}}), CFG)
     state = app.get_state(CFG).values
