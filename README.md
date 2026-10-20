@@ -202,7 +202,6 @@ approve -- a human says yes, and only then does it publish
   tokens       16 / 2000   (0/2 settled against the provider's count)
 
   tools called ['read_document', 'write_index', 'read_draft', 'publish']
-
 ```
 
 And `rework`, where the assessor keeps rejecting:
@@ -247,13 +246,9 @@ Abridged output, with Gemma 4 E4B actually answering:
 
 ```
   model said  '{"severity": "low"}'
-  model said  '{
-  "approved": true,
-  "comments": [
-    "The change is
+  model said  '{\n  "approved": true,\n  "comments": [\n    "The change is
                 small and localized (2 sections, low diff), which is
-                good.", ... ]
-}'
+                good.", ... ]\n}'
 
   with the model:
   trail        triage -> indexer -> assessor -> approval_gate -> publisher
