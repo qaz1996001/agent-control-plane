@@ -19,8 +19,8 @@ the two tables that gives a tenant something the role itself lacks.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 ToolFn = Callable[[dict], dict]
 
@@ -137,5 +137,5 @@ def invoke(agent: str, name: str, args: dict, tenant: str = DEFAULT_TENANT) -> d
         )
     try:
         return REGISTRY[name].fn(args)
-    except Exception as exc:  # noqa: BLE001 — containment is the point
+    except Exception as exc:  # noqa: BLE001 - containment is the point
         return {"error": f"{type(exc).__name__}: {exc}"}

@@ -19,12 +19,13 @@ with no model reachable at all.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Protocol
+from typing import Protocol
 
 from agentcp import privacy, providers, quota, tools
 from agentcp.audit import CallRecord, settle
-from agentcp.budget import BudgetExceeded, BudgetedStream
+from agentcp.budget import BudgetedStream, BudgetExceeded
 from agentcp.state import PROTECTED, PipelineState
 
 #: Chunk size the budget guard counts in. Nothing here streams: ``_chunks``

@@ -25,10 +25,10 @@ from __future__ import annotations
 
 import sys
 
-from langgraph.types import Command
-
 import adapters
 import gemma_judge
+from langgraph.types import Command
+
 from agentcp import agents, drift, evals, privacy, providers, quota
 from agentcp.budget import BudgetedStream, BudgetExceeded
 from agentcp.graph import build_graph
@@ -85,7 +85,10 @@ def pipeline(thread: str):
     adapters.reset()
     app = build_graph(judge=JUDGE)
     cfg = {"configurable": {"thread_id": thread}}
-    app.invoke(new_state("document_submitted", {"document": 4821, "draft": 318}, trace_id=thread), cfg)
+    app.invoke(
+        new_state("document_submitted", {"document": 4821, "draft": 318}, trace_id=thread),
+        cfg,
+    )
     return app, cfg
 
 
@@ -126,7 +129,8 @@ def scenario_rework() -> None:
     # instead, and whether the loop happens at all becomes its answer --
     # which is the more honest demonstration, so it wins.
     app = build_graph(
-        judge=JUDGE or (lambda prompt, ctx: {"approved": False, "comments": ["source refs missing"]})
+        judge=JUDGE
+        or (lambda prompt, ctx: {"approved": False, "comments": ["source refs missing"]})
     )
     cfg = {"configurable": {"thread_id": "rework"}}
     out = app.invoke(

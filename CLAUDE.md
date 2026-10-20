@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 uv run --with pytest --with langgraph pytest -q                    # the suite
 uv run --with langgraph python examples/run_pipeline.py            # all ten scenarios
 uv run --with langgraph python examples/run_pipeline.py --gemma    # the same, real model
+uv run --with "ruff>=0.6" ruff check .                            # lint
 ```
 
 Bare `pytest` and bare `python` both fail: `langgraph` and `pytest` are not in the

@@ -7,7 +7,7 @@ dependencies = ["langgraph>=0.2"]
 license = { text = "MIT" }
 
 [project.optional-dependencies]
-dev = ["pytest>=7"]
+dev = ["pytest>=7", "ruff>=0.6"]
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -19,3 +19,29 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 testpaths = ["tests"]
+
+[tool.ruff]
+# The code is written at about 100 columns; 88 would flag 45 existing lines
+# that are not too long, they are just prose-shaped. Measured, not guessed.
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes -- unused imports and names, the ones that matter
+    "I",        # import sorting
+    "B",        # bugbear
+    "UP",       # pyupgrade, bounded by target-version
+    "RUF",      # ruff's own
+    # Enabled so the `# noqa: BLE001` in tools.invoke means something. Catching
+    # a bare Exception there is the design -- a tool that raises degrades one
+    # step instead of killing a run holding an approval -- and a suppression
+    # that names the rule it suppresses is the honest way to say so.
+    "BLE",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests reach into module privates on purpose: the suite asserts properties of
+# the implementation, not only of the public surface.
+"tests/*" = ["E501"]

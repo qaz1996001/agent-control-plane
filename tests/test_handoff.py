@@ -1,7 +1,7 @@
 """Hand-off is explicit, and the step guard cannot be out-voted."""
 
 from agentcp import router
-from agentcp.agents import publisher_node, indexer_node, assessor_node, triage_node
+from agentcp.agents import assessor_node, indexer_node, publisher_node, triage_node
 from agentcp.state import new_state
 
 
