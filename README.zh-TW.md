@@ -43,7 +43,7 @@ uv run --with langgraph python examples/run_pipeline.py            # 10 個情�
 
 ### 六個性質，六個機制
 
-**路由** — `ROUTE_TABLE` 把 trigger 對應到代理。未知的 trigger 直接拋錯，**不退回預設值**。一個打錯字的 trigger 靜靜地路由到 `deployer`，正是最該防的那種失敗。
+**路由** — `ROUTE_TABLE` 把 trigger 對應到代理。未知的 trigger 直接拋錯，**不退回預設值**。一個打錯字的 trigger 靜靜地路由到 `publisher`，正是最該防的那種失敗。
 
 > 在 `rework` 裡看得到：trail 就是那張表選的路線，而迴圈停在步數上限。由 `test_routing.py`、`test_handoff.py` 釘住。
 
@@ -63,7 +63,7 @@ uv run --with langgraph python examples/run_pipeline.py            # 10 個情�
 
 **遮罩** — `privacy.mask` 在模型看到之前，把地址、內部主機名、帳號代號換成佔位符；這一半每一次執行都會跑到。`restore` 是同一套機制的另一半，而它是這條流水線**走不到**的那一半：被遮罩的是送給 judge 的**脈絡**，而 verdict 是模型自己的話，所以一次執行的答案裡根本沒有我們放進去的佔位符可還原——`consult` 回傳那份映射，執行就把它丟了。`restore` 只對握有權限的檢視者還原，而且沒有權限時**整段拒絕**，不做「能還原多少算多少」：部分還原照樣外洩，而且讀起來像是什麼都沒被扣住。映射綁定這一次執行，而且永不寫進 state——因為 state 會被 checkpoint。
 
-> 跑 `mask`：它會印出模型看到的佔位符文字，以及 `restore` 被拒絕的兩種方式。它在一般執行裡也會啟動：diff fixture 帶了作者信箱與建置主機，所以 `approve` 與 `gemma` 的 reviewer 那筆 call record 是 `masked: True`。由 `test_privacy.py` 釘住。
+> 跑 `mask`：它會印出模型看到的佔位符文字，以及 `restore` 被拒絕的兩種方式。它在一般執行裡也會啟動：diff fixture 帶了作者信箱與建置主機，所以 `approve` 與 `gemma` 的 assessor 那筆 call record 是 `masked: True`。由 `test_privacy.py` 釘住。
 
 **供應商選擇** — `providers.choose` 依序套三道過濾：健康狀態、地域**否決**、成本偏好。受限內容碰不到遠端供應商，**即使那是唯一還活著的那個**——答案是「沒有供應商」，不是「就這一次」。容錯可以跨成本偏好，永遠不能跨否決。
 
@@ -87,7 +87,7 @@ uv run --with langgraph python examples/run_pipeline.py approve    # 只跑一�
 | 情境 | 展示什麼 |
 |---|---|
 | `approve` | 執行暫停、人核可、**然後才**部署 |
-| `reject`  | 人工拒絕 —— deployer 拒絕執行，`deploy` 從未被呼叫 |
+| `reject`  | 人工拒絕 —— publisher 拒絕執行，`publish` 從未被呼叫 |
 | `ignore`  | 不帶決定恢復 —— 一樣拒絕 |
 | `rework`  | 審查退回；迴圈停在步數上限 |
 | `budget`  | 過長的回應在中途被切斷，之後真實用量覆寫估算值 |
@@ -106,21 +106,21 @@ approve -- a human says yes, and only then does it deploy
   paused at    ('approval_gate',)          <- 執行停住了，不是在輪詢
   deployed?    False
 
-  ...a reviewer approves in Slack / the web UI...
+  ...a assessor approves in Slack / the web UI...
 
-  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8
-  deploy_report {'deployed': True, 'result': {'workflow': 'deploy.yml', ...}}
-  model calls  2  (triage->local-small unmasked, reviewer->local-small masked)
+  publish_report {'deployed': True, 'result': {'workflow': 'deploy.yml', ...}}
+  model calls  2  (triage->local-small unmasked, assessor->local-small masked)
   tokens       15 / 2000   (0/2 settled against the provider's count)
 
-  tools called ['read_ticket', 'write_plan', 'read_diff', 'deploy']
+  tools called ['read_document', 'write_index', 'read_draft', 'deploy']
 ```
 
 `rework`，審查一直退回的情況：
 
 ```
-  trail        triage -> planner -> reviewer -> planner -> reviewer -> planner
+  trail        triage -> indexer -> assessor -> indexer -> assessor -> indexer
   steps        6 / 6
   the loop did not run forever; max_steps decided when to stop
 ```
@@ -152,7 +152,7 @@ uv run --with langgraph python examples/run_pipeline.py gemma
   model said  '{"approved": true, "comments": ["Metrics look small and
                 focused. Please provide a description of the changes..."]}'
 
-  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8
   model calls  2  (triage->local-small but answered by ollama:gemma4:e4b, ...)
   tokens       708 / 2000   (2/2 settled against the provider's count)
@@ -188,14 +188,14 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 
 ## 真的要上線怎麼接
 
-`examples/adapters.py` 就是整合面。裡面每個工具都是會記錄「它本來要呼叫什麼」的 stub，所以**接縫是可以數的——註冊了七個，節點實際走到的是四個**。另外三個（`label_ticket`、`post_comment`、`read_plan`）被允許、也接好了，但目前沒有節點呼叫；輸出裡的 `tools called` 是誠實的那一份清單。
+`examples/adapters.py` 就是整合面。裡面每個工具都是會記錄「它本來要呼叫什麼」的 stub，所以**接縫是可以數的——註冊了七個，節點實際走到的是四個**。另外三個（`tag_document`、`post_finding`、`read_index`）被允許、也接好了，但目前沒有節點呼叫；輸出裡的 `tools called` 是誠實的那一份清單。
 
 | stub | 真實環境換成什麼 |
 |---|---|
-| `read_ticket`、`label_ticket` | Jira / Linear REST client |
-| `read_diff`、`post_comment` | GitHub / GitLab API |
-| `write_plan`、`read_plan` | 你自己的儲存——一張表、一個 wiki 頁 |
-| `deploy` | CI 觸發：Actions dispatch、Argo、Jenkins |
+| `read_document`、`tag_document` | Jira / Linear REST client |
+| `read_draft`、`post_finding` | GitHub / GitLab API |
+| `write_index`、`read_index` | 你自己的儲存——一張表、一個 wiki 頁 |
+| `publish` | CI 觸發：Actions dispatch、Argo、Jenkins |
 
 換一個就是換一個函式；註冊表不知道、也不需要知道憑證從哪來。
 
@@ -223,13 +223,13 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 
 **權限**（`test_tool_access.py`）
 - 代理呼叫別人的工具會被拒絕
-- `deploy` 只有一個代理搆得到，用反查斷言
+- `publish` 只有一個代理搆得到，用反查斷言
 - 會拋錯的工具回傳 `{"error": ...}`，不往外炸
 - **每個代理被提供的 schema 等於它的白名單**，逐一驗過
 - 不存在的代理拿到空清單
 
 **核可**（`test_hitl.py`）
-- 執行是真的停住：`snapshot.next == ("approval_gate",)` 且此時還沒有 `deploy_report`
+- 執行是真的停住：`snapshot.next == ("approval_gate",)` 且此時還沒有 `publish_report`
 - 核可 → 部署；拒絕 → 結束但不部署，並寫明原因
 - **不帶決定恢復，照樣拒絕部署**
 - 機器判定通過的審查只會設 `requires_approval`，**不會寫 `human_decision`** —— 所以審查者沒有代替人核可。而**一個偏要寫的節點會拋錯**，因為 `build_graph` 拒絕任何指名 `state.PROTECTED` 欄位的 patch；拔掉那層包裝會讓四條測試變紅。它曾經只是慣例，見 [docs/errata.md](docs/errata.md) 的 A1
@@ -285,7 +285,7 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 - 一個租戶用盡額度不會動到另一個租戶的
 - 超額的例外帶著 `retry_after`
 - 撐破上限的那一筆花費照樣被記進去
-- 被收走 `deploy` 的租戶會讓 deployer **寫明理由後拒絕**，而不是炸掉並弄丟一個已經給出的核可
+- 被收走 `publish` 的租戶會讓 publisher **寫明理由後拒絕**，而不是炸掉並弄丟一個已經給出的核可
 
 **持久化**（`test_durability.py`）
 - `durability="require"` 卻沒有儲存時**直接拋錯，不靜默退回**記憶體 saver

@@ -14,10 +14,10 @@
 flowchart TD
     T(["trigger"]) --> R{"ROUTE_TABLE<br/>查表"}
     R -->|未知| X["拋 UnknownTrigger<br/>不退回預設值"]
-    R -->|ticket_opened| A["triage"]
-    R -->|plan_ready| B["planner"]
-    R -->|review_requested| C["reviewer"]
-    R -->|review_passed| D["deployer"]
+    R -->|document_submitted| A["triage"]
+    R -->|index_ready| B["indexer"]
+    R -->|assessment_requested| C["assessor"]
+    R -->|assessment_passed| D["publisher"]
 
     A --> N{"next_node"}
     B --> N
@@ -32,7 +32,7 @@ flowchart TD
     G -.->|"interrupt_before：<br/>執行停住並存檔"| H(["等待人工"])
     H -->|"帶 approve=True 恢復"| D
     H -->|"帶 approve=False<br/>或什麼都不帶"| D
-    D -.->|"沒有核可紀錄"| E3(["END —— deployer 拒絕"])
+    D -.->|"沒有核可紀錄"| E3(["END —— publisher 拒絕"])
 
     style X fill:#fce8e6,stroke:#a50e0e
     style H fill:#fff7ed,stroke:#f97316
@@ -42,7 +42,7 @@ flowchart TD
 
 虛線是整個系統唯一會等人的地方，而且是由執行層強制，不是靠某個節點記得要檢查。
 
-**兩條恢復的路最後都會跑到 deployer，拒絕的判斷在它裡面。** 這就是為什麼「什麼都不帶就恢復」部署不了——根本沒有一條獨立的拒絕分支可以寫錯；也是為什麼 `approval_gate` 其實什麼都沒決定：它連 `human_decision` 都不讀，只把待核可的旗標清掉就返回。**拒絕是 deployer 做的，不是在閘門做的。**
+**兩條恢復的路最後都會跑到 publisher，拒絕的判斷在它裡面。** 這就是為什麼「什麼都不帶就恢復」發布不了——根本沒有一條獨立的拒絕分支可以寫錯；也是為什麼 `approval_gate` 其實什麼都沒決定：它連 `human_decision` 都不讀，只把待核可的旗標清掉就返回。**拒絕是 publisher 做的，不是在閘門做的。**
 
 **優先序本身是被測的**：`test_step_budget_outranks_a_pending_handoff` 在一個已超過步數上限的狀態上**同時**設了 `next_agent` 和 `requires_approval`，斷言執行仍然結束。
 
@@ -50,24 +50,24 @@ flowchart TD
 
 ## 2. 權限在呼叫點檢查，而「將來要對外宣告」的也是同一張表
 
-提示詞寫「不要部署」是一個請求。`ACCESS` 是一個檢查。`allowed()` 是這張表的唯一來源，兩種讀法都從它來——`invoke` 做檢查、`schemas_for` 做算繪——所以**一個工具不可能被推薦給沒有權限執行它的代理**。這個 repo 沒有任何節點讓模型自己挑工具，所以那層算繪是「將來要接 tool-calling」的那道縫；在還沒有人依賴它之前就把一致性釘住，是這件事裡便宜的那一半，也是唯一可移植的那一半。
+提示詞寫「不要發布」是一個請求。`ACCESS` 是一個檢查。`allowed()` 是這張表的唯一來源，兩種讀法都從它來——`invoke` 做檢查、`schemas_for` 做算繪——所以**一個工具不可能被推薦給沒有權限執行它的代理**。這個 repo 沒有任何節點讓模型自己挑工具，所以那層算繪是「將來要接 tool-calling」的那道縫；在還沒有人依賴它之前就把一致性釘住，是這件事裡便宜的那一半，也是唯一可移植的那一半。
 
 ```mermaid
 flowchart LR
     subgraph reg["REGISTRY —— 所有工具"]
         direction TB
-        T1["read_ticket"]
-        T2["write_plan"]
-        T3["read_diff"]
-        T4["deploy"]
+        T1["read_document"]
+        T2["write_index"]
+        T3["read_draft"]
+        T4["publish"]
     end
 
     subgraph acc["ACCESS —— 代理對應白名單"]
         direction TB
-        P1["triage → read_ticket, label_ticket"]
-        P2["planner → read_ticket, write_plan"]
-        P3["reviewer → read_diff, post_comment"]
-        P4["deployer → read_plan, deploy"]
+        P1["triage → read_document, tag_document"]
+        P2["indexer → read_document, write_index"]
+        P3["assessor → read_draft, post_finding"]
+        P4["publisher → read_index, publish"]
     end
 
     reg --> S["schemas_for(agent)"]
@@ -168,7 +168,7 @@ flowchart TD
 | 步數上限壓過交棒與核可 | `test_step_budget_outranks_a_pending_handoff` |
 | 執行真的停在閘門 | `test_run_actually_stops_at_the_gate` |
 | 沒有決定不等於同意 | `test_resuming_with_no_decision_still_refuses_to_deploy` |
-| 審查者不寫 `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
+| 評斷者不寫 `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
 | 宣告的 schema 等於白名單 | `test_schemas_offered_match_the_allow_list` |
 | 工具拋錯回傳 error 物件，不往外拋 | `test_a_raising_tool_degrades_instead_of_crashing` |
 | 預算在串流中途就咬 | `test_stream_is_cut_mid_way_not_after_the_fact` |

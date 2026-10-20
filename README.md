@@ -63,7 +63,7 @@ an assertion rather than a claim.
 
 **Routing** — `ROUTE_TABLE` maps trigger → agent. An unknown trigger
 raises; it does not fall back to a default. A typo that silently routed to
-`deployer` is exactly the failure worth preventing.
+`publisher` is exactly the failure worth preventing.
 
 > Seen in `rework`, where the trail is the route the table chose and the
 > loop ends at the step guard. Pinned by `test_routing.py`, `test_handoff.py`.
@@ -129,7 +129,7 @@ written into state, because state is checkpointed.
 
 > Run `mask`, which shows the placeholder text and both ways `restore`
 > refuses. It also fires in an ordinary run: the diff fixture carries an
-> author address and a build host, so the reviewer's call record reads
+> author address and a build host, so the assessor's call record reads
 > `masked: True` in `approve` and `gemma` too. Pinned by `test_privacy.py`.
 
 **Provider choice** — `providers.choose` applies three filters in order:
@@ -167,9 +167,9 @@ Ten scenarios, each printing what actually happened:
 | scenario | shows |
 |---|---|
 | `approve` | the run pauses, a human approves, and only then does it deploy |
-| `reject`  | a human declines -- the deployer refuses, `deploy` is never called |
+| `reject`  | a human declines -- the publisher refuses, `publish` is never called |
 | `ignore`  | resumed with no decision -- still refuses |
-| `rework`  | reviewer sends it back; the loop ends at the step guard |
+| `rework`  | assessor sends it back; the loop ends at the step guard |
 | `budget`  | a long response cut mid-stream, then the real count replaces the estimate |
 | `gate`    | a release blocked by the eval gate, then allowed; drift on the same metric |
 | `mask`    | what the model is shown, and the two ways restoring is refused |
@@ -186,21 +186,21 @@ approve -- a human says yes, and only then does it deploy
   paused at    ('approval_gate',)          <- the run is stopped, not polling
   deployed?    False
 
-  ...a reviewer approves in Slack / the web UI...
+  ...a assessor approves in Slack / the web UI...
 
-  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8
-  deploy_report {'deployed': True, 'result': {'workflow': 'deploy.yml', 'run_id': 99214, ...}}
-  model calls  2  (triage->local-small unmasked, reviewer->local-small masked)
+  publish_report {'deployed': True, 'result': {'workflow': 'deploy.yml', 'run_id': 99214, ...}}
+  model calls  2  (triage->local-small unmasked, assessor->local-small masked)
   tokens       15 / 2000   (0/2 settled against the provider's count)
 
-  tools called ['read_ticket', 'write_plan', 'read_diff', 'deploy']
+  tools called ['read_document', 'write_index', 'read_draft', 'deploy']
 ```
 
-And `rework`, where the reviewer keeps rejecting:
+And `rework`, where the assessor keeps rejecting:
 
 ```
-  trail        triage -> planner -> reviewer -> planner -> reviewer -> planner
+  trail        triage -> indexer -> assessor -> indexer -> assessor -> indexer
   steps        6 / 6
   the loop did not run forever; max_steps decided when to stop
 ```
@@ -236,7 +236,7 @@ Abridged output, with Gemma 4 E4B actually answering:
   model said  '{"approved": true, "comments": ["Metrics look small and
                 focused. Please provide a description of the changes..."]}'
 
-  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8
   model calls  2  (triage->local-small but answered by ollama:gemma4:e4b, ...)
   tokens       708 / 2000   (2/2 settled against the provider's count)
@@ -284,16 +284,16 @@ Three things the scenario is built to show:
 `examples/adapters.py` is the integration surface. Every tool there is a
 stub that records the call it would have made, which makes the seams
 countable -- there are seven registered, of which the node implementations
-currently reach four. The other three (`label_ticket`, `post_comment`,
-`read_plan`) are permitted and wired but unused; `tools called` in the
+currently reach four. The other three (`tag_document`, `post_finding`,
+`read_index`) are permitted and wired but unused; `tools called` in the
 output below is the honest list.
 
 | stub | what replaces it |
 |---|---|
-| `read_ticket`, `label_ticket` | Jira / Linear REST client |
-| `read_diff`, `post_comment` | GitHub / GitLab API |
-| `write_plan`, `read_plan` | your own store -- a table, a wiki page |
-| `deploy` | CI trigger: Actions dispatch, Argo, Jenkins |
+| `read_document`, `tag_document` | Jira / Linear REST client |
+| `read_draft`, `post_finding` | GitHub / GitLab API |
+| `write_index`, `read_index` | your own store -- a table, a wiki page |
+| `publish` | CI trigger: Actions dispatch, Argo, Jenkins |
 
 Swapping one is a single function; the registry neither knows nor wants to
 know where credentials come from.
@@ -343,18 +343,18 @@ The tests are the deliverable; the implementation is small on purpose.
 
 **Permissions** (`test_tool_access.py`)
 - An agent calling another agent's tool is denied
-- `deploy` is reachable from exactly one agent, asserted by inspection
+- `publish` is reachable from exactly one agent, asserted by inspection
 - A raising tool returns `{"error": ...}` instead of propagating
 - **Schemas offered to an agent equal its allow-list, for every agent**
 - An unknown agent is offered nothing
 
 **Approval** (`test_hitl.py`)
 - The run genuinely stops: `snapshot.next == ("approval_gate",)` and no
-  `deploy_report` exists yet
+  `publish_report` exists yet
 - Approve → deploys; reject → finishes without deploying, with a reason
 - **Resuming with no decision still refuses**
 - A machine-approved review sets `requires_approval` and does not write
-  `human_decision` — so the reviewer does not approve on the human's
+  `human_decision` — so the assessor does not approve on the human's
   behalf. **A node that tries raises**, because `build_graph` refuses a
   patch naming a field in `state.PROTECTED`; four tests go red if that
   wrapper is removed. It was a convention until it was not — entry A1 in
@@ -362,8 +362,8 @@ The tests are the deliverable; the implementation is small on purpose.
 
 **Hand-off** (`test_handoff.py`)
 - Each agent writes exactly one `*_report` key and no other agent's
-- A rejecting review hands back to the planner
-- A planner ↔ reviewer cycle stops at exactly `max_steps`
+- A rejecting review hands back to the indexer
+- A indexer ↔ assessor cycle stops at exactly `max_steps`
 - State is still coherent and inspectable after the guard fires
 
 **Budget** (`test_budget.py`)
@@ -421,7 +421,7 @@ The tests are the deliverable; the implementation is small on purpose.
 - One tenant running out does not touch another's allowance
 - The over-quota error carries `retry_after`
 - The spend that broke the limit is still counted
-- A tenant denied `deploy` makes the deployer refuse with a reason rather
+- A tenant denied `publish` makes the publisher refuse with a reason rather
   than crash and lose an approval already given
 
 **Durability** (`test_durability.py`)

@@ -20,9 +20,9 @@ pending approval, then an explicit hand-off, then stop. The guard is first
 so a cycle cannot out-vote it.
 
 `approval_gate` is compiled with `interrupt_before`, so reaching it stops
-the run and checkpoints it. The deployer is reached on both the approved
-and the unapproved path — the refusal lives *inside* the deployer, which
-is why "resume with no decision" still cannot deploy.
+the run and checkpoints it. The publisher is reached on both the approved
+and the unapproved path — the refusal lives *inside* the publisher, which
+is why "resume with no decision" still cannot publish.
 
 Source: [`router.py`](../src/agentcp/router.py), [`graph.py`](../src/agentcp/graph.py)
 
@@ -68,7 +68,7 @@ There are 18 fields. One writer each holds for the four `*_report` slots
 and for `human_decision`; it does not hold for the rest. `next_agent` is
 written by four nodes, `step_count` and `completed` by five (every node
 goes through `_advance`), `calls` and `tokens_used` by two, and
-`requires_approval` by two — the reviewer sets it and the gate clears it.
+`requires_approval` by two — the assessor sets it and the gate clears it.
 The diagram groups those under "written by nodes" rather than naming each,
 so it shows *when* a field is written rather than by whom.
 
@@ -82,14 +82,14 @@ protects `max_steps`, `sensitivity`, `tenant` and `trace_id`.
 It was a convention until recently: `PipelineState` is a bare `TypedDict`,
 `graph.py` merged a node's patch in unchanged, and a node that wrote
 `human_decision` forged a human approval that nothing rejected — resuming
-with *no* decision then deployed, straight through the check that is
+with *no* decision then published, straight through the check that is
 supposed to prevent exactly that. Entry A1 in [`errata.md`](errata.md)
 keeps the record, because how a claim came to outrun its evidence is
 worth more than the repaired sentence.
 
 `next_agent` is deliberately not protected: handing off is what a node is
-for. A node can still route past the gate, and what stops the deploy is
-the deployer's own refusal — the decision it needs is the field that
+for. A node can still route past the gate, and what stops the publish is
+the publisher's own refusal — the decision it needs is the field that
 cannot be forged.
 
 Four fields are set once at `new_state` and only read afterwards —
@@ -112,8 +112,8 @@ Each is runnable:
 uv run --with langgraph python examples/run_pipeline.py approve
 ```
 
-Most of them end in "did not deploy", which is the intended shape: the
-interesting cases for a deploy pipeline are the ones where it declines,
+Most of them end in "did not publish", which is the intended shape: the
+interesting cases for a publishing pipeline are the ones where it declines,
 and there are more ways to decline than to proceed.
 
 ---
