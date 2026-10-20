@@ -63,8 +63,8 @@
   </g>
   <g id="node-r1" data-graph-role="node" data-node-id="r1" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="400,100,960,160">
   <rect x="400.0" y="100.0" width="560.0" height="60.0" rx="10.0" fill="#e6f4ea" stroke="#1e7e34" stroke-width="1.8" filter="url(#shadowSoft)"/>
-  <text data-text-role="title" data-full-text="部署成功" data-text-max-width="536.0" x="680.0" y="130.0" text-anchor="middle" class="node-title" font-size="18">部署成功</text>
-  <text data-text-role="subtitle" data-full-text="軌跡 triage → planner → reviewer → gate → deployer" data-text-max-width="536.0" x="680.0" y="152.0" text-anchor="middle" class="node-sub" font-size="12">軌跡 triage → planner → reviewer → gate → deployer</text>
+  <text data-text-role="title" data-full-text="發布成功" data-text-max-width="536.0" x="680.0" y="130.0" text-anchor="middle" class="node-title" font-size="18">發布成功</text>
+  <text data-text-role="subtitle" data-full-text="軌跡 triage → indexer → assessor → gate → publisher" data-text-max-width="536.0" x="680.0" y="152.0" text-anchor="middle" class="node-sub" font-size="12">軌跡 triage → indexer → assessor → gate → publisher</text>
   </g>
   <g id="node-n2" data-graph-role="node" data-node-id="n2" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,204,336,264">
   <rect x="36.0" y="204.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
@@ -73,8 +73,8 @@
   </g>
   <g id="node-r2" data-graph-role="node" data-node-id="r2" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="400,204,960,264">
   <rect x="400.0" y="204.0" width="560.0" height="60.0" rx="10.0" fill="#fce8e6" stroke="#a50e0e" stroke-width="1.8" filter="url(#shadowSoft)"/>
-  <text data-text-role="title" data-full-text="不部署" data-text-max-width="536.0" x="680.0" y="234.0" text-anchor="middle" class="node-title" font-size="18">不部署</text>
-  <text data-text-role="subtitle" data-full-text="deploy 工具從未被呼叫，並記下原因" data-text-max-width="536.0" x="680.0" y="256.0" text-anchor="middle" class="node-sub" font-size="12">deploy 工具從未被呼叫，並記下原因</text>
+  <text data-text-role="title" data-full-text="不發布" data-text-max-width="536.0" x="680.0" y="234.0" text-anchor="middle" class="node-title" font-size="18">不發布</text>
+  <text data-text-role="subtitle" data-full-text="publish 工具從未被呼叫，並記下原因" data-text-max-width="536.0" x="680.0" y="256.0" text-anchor="middle" class="node-sub" font-size="12">publish 工具從未被呼叫，並記下原因</text>
   </g>
   <g id="node-n3" data-graph-role="node" data-node-id="n3" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,308,336,368">
   <rect x="36.0" y="308.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
@@ -83,18 +83,18 @@
   </g>
   <g id="node-r3" data-graph-role="node" data-node-id="r3" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="400,308,960,368">
   <rect x="400.0" y="308.0" width="560.0" height="60.0" rx="10.0" fill="#fce8e6" stroke="#a50e0e" stroke-width="1.8" filter="url(#shadowSoft)"/>
-  <text data-text-role="title" data-full-text="一樣不部署" data-text-max-width="536.0" x="680.0" y="338.0" text-anchor="middle" class="node-title" font-size="18">一樣不部署</text>
+  <text data-text-role="title" data-full-text="一樣不發布" data-text-max-width="536.0" x="680.0" y="338.0" text-anchor="middle" class="node-title" font-size="18">一樣不發布</text>
   <text data-text-role="subtitle" data-full-text="缺席不等於同意" data-text-max-width="536.0" x="680.0" y="360.0" text-anchor="middle" class="node-sub" font-size="12">缺席不等於同意</text>
   </g>
   <g id="node-n4" data-graph-role="node" data-node-id="n4" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,412,336,472">
   <rect x="36.0" y="412.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
   <text data-text-role="title" data-full-text="rework" data-text-max-width="276.0" x="186.0" y="442.0" text-anchor="middle" class="node-title" font-size="18">rework</text>
-  <text data-text-role="subtitle" data-full-text="審查一直退回" data-text-max-width="276.0" x="186.0" y="464.0" text-anchor="middle" class="node-sub" font-size="12">審查一直退回</text>
+  <text data-text-role="subtitle" data-full-text="評斷一直退回" data-text-max-width="276.0" x="186.0" y="464.0" text-anchor="middle" class="node-sub" font-size="12">評斷一直退回</text>
   </g>
   <g id="node-r4" data-graph-role="node" data-node-id="r4" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="400,412,960,472">
   <rect x="400.0" y="412.0" width="560.0" height="60.0" rx="10.0" fill="#fff7ed" stroke="#f97316" stroke-width="1.8" filter="url(#shadowSoft)"/>
   <text data-text-role="title" data-full-text="停在步數上限" data-text-max-width="536.0" x="680.0" y="442.0" text-anchor="middle" class="node-title" font-size="18">停在步數上限</text>
-  <text data-text-role="subtitle" data-full-text="軌跡出現 planner 與 reviewer 交替，6 / 6 收手" data-text-max-width="536.0" x="680.0" y="464.0" text-anchor="middle" class="node-sub" font-size="12">軌跡出現 planner 與 reviewer 交替，6 / 6 收手</text>
+  <text data-text-role="subtitle" data-full-text="軌跡出現 indexer 與 assessor 交替，6 / 6 收手" data-text-max-width="536.0" x="680.0" y="464.0" text-anchor="middle" class="node-sub" font-size="12">軌跡出現 indexer 與 assessor 交替，6 / 6 收手</text>
   </g>
   <g id="node-n5" data-graph-role="node" data-node-id="n5" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="36,516,336,576">
   <rect x="36.0" y="516.0" width="300.0" height="60.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
@@ -168,6 +168,6 @@
     <text data-graph-role="decoration" x="376.0" y="1160.0" class="legend">品質閘門</text>
   </g>
   <g id="footer" data-graph-role="reserved" data-graph-bounds="36,1202,337,1218">
-  <text x="36.0" y="1214.0" class="footnote">六個會跑完整流程的情境裡，四個的結果是「沒有部署」 —— 值得看的正是它拒絕的那些情況</text>
+  <text x="36.0" y="1214.0" class="footnote">六個會跑完整流程的情境裡，四個的結果是「沒有發布」 —— 值得看的正是它拒絕的那些情況</text>
   </g>
 </svg>

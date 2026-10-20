@@ -14,9 +14,10 @@ uv run --with langgraph python examples/run_pipeline.py            # 10 scenario
 ```
 
 Every claim below is one of those ten scenarios, and each prints what
-actually happened. Most of them end in *did not deploy*. That is the
-intended shape: in a deploy pipeline the interesting cases are the ones
-where it declines, and there are more ways to decline than to proceed.
+actually happened. Most of them end in *did not publish*. That is the
+intended shape: in a publishing pipeline the interesting cases are the
+ones where it declines, and there are more ways to decline than to
+proceed.
 
 Built on LangGraph for the runtime (node execution, checkpointing, and the
 interrupt that makes approval a real pause). The routing policy is a plain
@@ -24,9 +25,12 @@ function over state, so it is testable without building a graph.
 
 Four views of what the code does -- control flow, data flow, state lifecycle and usage scenarios -- are in [docs/architecture.md](docs/architecture.md). What is deliberately *not* here, and why, is in [docs/scope.md](docs/scope.md).
 
-The domain is a software-delivery pipeline — Ticket → Plan → Review →
-Deploy — because that is the case where "the agent decided to deploy" is a
-bad sentence to have to say.
+The domain is a retrieval-corpus publishing pipeline — a document is
+triaged, indexed, assessed, held at a human gate, and published to a live
+index — because that is the case where "the agent decided to publish it"
+is a bad sentence to have to say. It is also pitched at a deliberately
+generic altitude, for a reason set out in
+[Where this came from](#where-this-came-from).
 
 ---
 
@@ -40,7 +44,7 @@ Give an LLM the control flow and you get a system where:
   evals, not by reading one line;
 - "which tools may this step use" is a sentence in a prompt, which is a
   request rather than a check;
-- a deploy can happen because a model was persuaded that it should.
+- a publish can happen because a model was persuaded that it should.
 
 None of that is an argument against using models. It is an argument about
 *where*.
@@ -54,8 +58,8 @@ None of that is an argument against using models. It is an argument about
 | Replaying a failed run | approximate | exact |
 | Proving "no model ran here" | not possible | a test |
 
-The model still does the work that needs judgement — classify this ticket,
-review this diff. Those are injected callables (`Judge`), which is also
+The model still does the work that needs judgement — classify this
+document, assess this draft. Those are injected callables (`Judge`), which is also
 what makes "the control plane ran with every model entry point poisoned"
 an assertion rather than a claim.
 
@@ -63,7 +67,7 @@ an assertion rather than a claim.
 
 **Routing** — `ROUTE_TABLE` maps trigger → agent. An unknown trigger
 raises; it does not fall back to a default. A typo that silently routed to
-`deployer` is exactly the failure worth preventing.
+`publisher` is exactly the failure worth preventing.
 
 > Seen in `rework`, where the trail is the route the table chose and the
 > loop ends at the step guard. Pinned by `test_routing.py`, `test_handoff.py`.
@@ -108,7 +112,7 @@ re-slices a reply that arrived whole.
 
 **Approval** — the graph is compiled with
 `interrupt_before=["approval_gate"]`. A run that reaches the gate stops and
-is checkpointed. Nothing deploys until someone resumes it with a decision,
+is checkpointed. Nothing is published until someone resumes it with a decision,
 and resuming *without* a decision still refuses — absence of a decision is
 not consent.
 
@@ -128,8 +132,8 @@ though nothing was withheld. The mapping is bound to the run and never
 written into state, because state is checkpointed.
 
 > Run `mask`, which shows the placeholder text and both ways `restore`
-> refuses. It also fires in an ordinary run: the diff fixture carries an
-> author address and a build host, so the reviewer's call record reads
+> refuses. It also fires in an ordinary run: the draft fixture carries an
+> author address and a build host, so the assessor's call record reads
 > `masked: True` in `approve` and `gemma` too. Pinned by `test_privacy.py`.
 
 **Provider choice** — `providers.choose` applies three filters in order:
@@ -166,12 +170,12 @@ Ten scenarios, each printing what actually happened:
 
 | scenario | shows |
 |---|---|
-| `approve` | the run pauses, a human approves, and only then does it deploy |
-| `reject`  | a human declines -- the deployer refuses, `deploy` is never called |
+| `approve` | the run pauses, a human approves, and only then does it publish |
+| `reject`  | a human declines -- the publisher refuses, `publish` is never called |
 | `ignore`  | resumed with no decision -- still refuses |
-| `rework`  | reviewer sends it back; the loop ends at the step guard |
+| `rework`  | assessor sends it back; the loop ends at the step guard |
 | `budget`  | a long response cut mid-stream, then the real count replaces the estimate |
-| `gate`    | a release blocked by the eval gate, then allowed; drift on the same metric |
+| `gate`    | a publish blocked by the eval gate, then allowed; drift on the same metric |
 | `mask`    | what the model is shown, and the two ways restoring is refused |
 | `residency` | the only healthy provider is remote, the content is restricted, and the answer is still no |
 | `quota`   | a tenant out of allowance -- the run declines, and the attempt is still recorded |
@@ -181,27 +185,36 @@ Abridged output of `approve`:
 
 ```
 --------------------------------------------------------------------------
-approve -- a human says yes, and only then does it deploy
+approve -- a human says yes, and only then does it publish
 --------------------------------------------------------------------------
   paused at    ('approval_gate',)          <- the run is stopped, not polling
-  deployed?    False
+  published?   False
 
   ...a reviewer approves in Slack / the web UI...
 
-  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8
-  deploy_report {'deployed': True, 'result': {'workflow': 'deploy.yml', 'run_id': 99214, ...}}
-  model calls  2  (triage->local-small unmasked, reviewer->local-small masked)
-  tokens       15 / 2000   (0/2 settled against the provider's count)
+  triage_report      {'severity': 'normal', 'document': {'id': 4821, 'title': 'Calibration procedure, revision C', 'submitter': 'support'}}
+  index_report       {'entry': {'chunks': ['split by section', 'strip boilerplate', 'attach source refs']}}
+  assessment_report  {'approved': True, 'comments': [], 'text': 'draft assessed, no blocking findings.'}
+  publish_report     {'published': True, 'result': {'index': 'corpus-live', 'revision': 99214, 'tier': 'published'}}
+  model calls  2  (triage->local-small unmasked, assessor->local-small masked)
+  tokens       16 / 2000   (0/2 settled against the provider's count)
 
-  tools called ['read_ticket', 'write_plan', 'read_diff', 'deploy']
+  tools called ['read_document', 'write_index', 'read_draft', 'publish']
 ```
 
-And `rework`, where the reviewer keeps rejecting:
+And `rework`, where the assessor keeps rejecting:
 
 ```
-  trail        triage -> planner -> reviewer -> planner -> reviewer -> planner
+  trail        triage -> indexer -> assessor -> indexer -> assessor -> indexer
   steps        6 / 6
+  triage_report      {'severity': 'normal', 'document': {'id': 4821, 'title': 'Calibration procedure, revision C', 'submitter': 'support'}}
+  index_report       {'entry': {'chunks': ['split by section', 'strip boilerplate', 'attach source refs']}}
+  assessment_report  {'approved': False, 'comments': ['add tests']}
+  model calls  3  (triage->local-small unmasked, assessor->local-small masked, assessor->local-small masked)
+  tokens       36 / 2000   (0/3 settled against the provider's count)
+
   the loop did not run forever; max_steps decided when to stop
 ```
 
@@ -232,30 +245,37 @@ in `adapters.py`.
 Abridged output, with Gemma 4 E4B actually answering:
 
 ```
-  model said  '{"severity": "critical"}'
-  model said  '{"approved": true, "comments": ["Metrics look small and
-                focused. Please provide a description of the changes..."]}'
+  model said  '{"severity": "low"}'
+  model said  '{\n  "approved": true,\n  "comments": [\n    "The change is
+                small and localized (2 sections, low diff), which is
+                good.", ... ]\n}'
 
-  trail        triage -> planner -> reviewer -> approval_gate -> deployer
+  with the model:
+  trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8
-  model calls  2  (triage->local-small but answered by ollama:gemma4:e4b, ...)
-  tokens       708 / 2000   (2/2 settled against the provider's count)
+  triage_report      {'severity': 'low', 'document': {'id': 4821, ...}}
+  publish_report     {'published': True, 'result': {'index': 'corpus-live', 'revision': 99214, 'tier': 'published'}}
+  model calls  2  (triage->local-small unmasked but answered by ollama:gemma4:e4b, ...)
+  tokens       1084 / 2000   (2/2 settled against the provider's count)
 
-  severity     'normal' (default)  ->  'critical' (Gemma)
+  severity     'normal' (default)  ->  'low' (Gemma)
   same trail?  True        <- routing is code, not a prompt
   same steps?  5 vs 5
-  deployed?    True         <- still only because a human said yes
+  published?    True         <- still only because a human said yes
 
-  estimated    50 tokens   <- the char heuristic, from the visible reply
-  provider     708 tokens  <- eval_count, which includes Gemma's
-               hidden reasoning: 14x the estimate.
+  estimated    73 tokens   <- the char heuristic, from the visible reply
+  provider     1084 tokens   <- eval_count, which includes Gemma's
+               hidden reasoning: 15x the estimate.
 
   rejected     0   every reply matched the schema
 ```
 
-The model disagreed with the default about severity -- a 500 on login is
-indeed not `normal` -- and the route did not change by one step, because
-nothing asked it to.
+The model disagreed with the default about severity -- it read a routine
+procedure revision as `low` rather than `normal` -- and the route did not
+change by one step, because nothing asked it to. The reply is also the
+model's own prose rather than ours, which is the point of the seam and
+also its honest edge: the judgement is whatever the model says, and the
+only thing the control plane does with it is type-check it.
 
 Three things the scenario is built to show:
 
@@ -272,7 +292,7 @@ Three things the scenario is built to show:
 - **It is what finally made `settle()` demonstrable.** The budget guard has
   to decide before the provider reports, so it estimates from the characters
   it can see. Gemma 4 E4B reasons before it answers, and `eval_count` bills
-  that reasoning: on this run, 708 tokens against an estimate of 50. The
+  that reasoning: on this run, 1084 tokens against an estimate of 73. The
   estimate is not slightly off, it is off by an order of magnitude, and it
   is wrong in the direction that matters. A ledger that kept the estimate
   would under-report the bill by that much -- which is why the record
@@ -284,29 +304,29 @@ Three things the scenario is built to show:
 `examples/adapters.py` is the integration surface. Every tool there is a
 stub that records the call it would have made, which makes the seams
 countable -- there are seven registered, of which the node implementations
-currently reach four. The other three (`label_ticket`, `post_comment`,
-`read_plan`) are permitted and wired but unused; `tools called` in the
+currently reach four. The other three (`tag_document`, `post_finding`,
+`read_index`) are permitted and wired but unused; `tools called` in the
 output below is the honest list.
 
 | stub | what replaces it |
 |---|---|
-| `read_ticket`, `label_ticket` | Jira / Linear REST client |
-| `read_diff`, `post_comment` | GitHub / GitLab API |
-| `write_plan`, `read_plan` | your own store -- a table, a wiki page |
-| `deploy` | CI trigger: Actions dispatch, Argo, Jenkins |
+| `read_document`, `tag_document` | whatever holds intake -- a tracker's REST client, a document store |
+| `read_draft`, `post_finding` | wherever drafts and findings live -- a Git host's review API, a CMS |
+| `write_index`, `read_index` | your own store -- a table, a vector index |
+| `publish` | the index build: a CI dispatch, an indexing job, an alias swap |
 
 Swapping one is a single function; the registry neither knows nor wants to
 know where credentials come from.
 
 **What drives a run.** A webhook maps an inbound event to a `Trigger` and
-calls `invoke` with a thread id -- typically the ticket or PR number, so a
+calls `invoke` with a thread id -- typically the document or draft id, so a
 re-delivered webhook resumes the same run rather than starting a second
 one. The trigger vocabulary is a closed set precisely so that mapping is a
 dictionary you can read, not a prompt.
 
 **Where a human sees the pause.** When a run stops,
 `app.get_state(cfg).next` is `("approval_gate",)` and the state holds the
-reviewing agent's report. That is enough to render a Slack message or a web
+assessing agent's report. That is enough to render a Slack message or a web
 page with the evidence and two buttons; the buttons call `invoke` with
 `Command(update={"human_decision": ...})` on the same thread id. Nothing
 polls, and a pause costs nothing while it waits.
@@ -343,18 +363,18 @@ The tests are the deliverable; the implementation is small on purpose.
 
 **Permissions** (`test_tool_access.py`)
 - An agent calling another agent's tool is denied
-- `deploy` is reachable from exactly one agent, asserted by inspection
+- `publish` is reachable from exactly one agent, asserted by inspection
 - A raising tool returns `{"error": ...}` instead of propagating
 - **Schemas offered to an agent equal its allow-list, for every agent**
 - An unknown agent is offered nothing
 
 **Approval** (`test_hitl.py`)
 - The run genuinely stops: `snapshot.next == ("approval_gate",)` and no
-  `deploy_report` exists yet
-- Approve → deploys; reject → finishes without deploying, with a reason
+  `publish_report` exists yet
+- Approve → publishes; reject → finishes without publishing, with a reason
 - **Resuming with no decision still refuses**
-- A machine-approved review sets `requires_approval` and does not write
-  `human_decision` — so the reviewer does not approve on the human's
+- A machine-approved assessment sets `requires_approval` and does not write
+  `human_decision` — so the assessor does not approve on the human's
   behalf. **A node that tries raises**, because `build_graph` refuses a
   patch naming a field in `state.PROTECTED`; four tests go red if that
   wrapper is removed. It was a convention until it was not — entry A1 in
@@ -362,8 +382,8 @@ The tests are the deliverable; the implementation is small on purpose.
 
 **Hand-off** (`test_handoff.py`)
 - Each agent writes exactly one `*_report` key and no other agent's
-- A rejecting review hands back to the planner
-- A planner ↔ reviewer cycle stops at exactly `max_steps`
+- A rejecting assessment hands back to the indexer
+- An indexer ↔ assessor cycle stops at exactly `max_steps`
 - State is still coherent and inspectable after the guard fires
 
 **Budget** (`test_budget.py`)
@@ -421,7 +441,7 @@ The tests are the deliverable; the implementation is small on purpose.
 - One tenant running out does not touch another's allowance
 - The over-quota error carries `retry_after`
 - The spend that broke the limit is still counted
-- A tenant denied `deploy` makes the deployer refuse with a reason rather
+- A tenant denied `publish` makes the publisher refuse with a reason rather
   than crash and lose an approval already given
 
 **Durability** (`test_durability.py`)
@@ -490,13 +510,26 @@ The tests are the deliverable; the implementation is small on purpose.
 I built an agent platform at work — seven agents behind a deterministic
 supervisor, a tool layer with per-tenant access, an approval gate, an eval
 gate and drift detection — and that code is private. This repository is a
-from-scratch reimplementation of the *decisions*, in a different domain, to
-make them inspectable.
+from-scratch reimplementation of the *decisions*, to make them
+inspectable.
 
 **No code from that system is used here.** What carries over is the
 reasoning, written up in [docs/design.md](docs/design.md), and the
 boundary — which of that system's capabilities are reproduced and which
 were deliberately left out — in [docs/scope.md](docs/scope.md).
+
+**Why this domain.** It is pitched at a deliberately generic altitude:
+triage, index, assess, gate, publish is the shape any team running a
+knowledge base already has, so the decisions can be read without the
+source being identifiable. The protection is that the vocabulary is
+ordinary, not that the domain is distant. That is a smaller claim than
+it may look, and worth stating at its real size: it lowers how
+identifying the *words* are, and it does nothing about the structural
+resemblance — four agents behind one deterministic router, a single
+model entry point, a gate a human has to pass, an audit record. That
+structure is the whole value of the repository, so it is not something
+I could remove and still have anything to show. The vocabulary is
+generic on purpose; the shape is not, and is not meant to be.
 
 ### Where this is stricter than what it came from
 

@@ -34,8 +34,8 @@ fail if the property stops holding.
 | An agent calls only its own tools | `ACCESS` checked inside `invoke` | `test_tool_access.py` |
 | The two readings of the tool table cannot drift | `schemas_for` and `invoke` share `allowed()` | `test_tool_access.py` |
 | A tenant rule can narrow a role, never widen it | `TENANT_DENY` subtracts from `ACCESS` | `test_tool_access.py` |
-| Nothing deploys without a human | `interrupt_before=["approval_gate"]` | `test_hitl.py` |
-| Absence of a decision is not consent | refusal lives inside the deployer | `test_hitl.py` |
+| Nothing publishes without a human | `interrupt_before=["approval_gate"]` | `test_hitl.py` |
+| Absence of a decision is not consent | refusal lives inside the publisher | `test_hitl.py` |
 | The model never sees real identifiers | `privacy.mask` before the call | `test_privacy.py`, `test_audit.py` |
 | Unmasking is a permission, not a step | `privacy.restore` refuses outright | `test_privacy.py` |
 | Restricted content does not leave the deployment | locality veto in `providers.choose` | `test_providers.py` |
@@ -103,21 +103,28 @@ that were decided rather than measured, so those are the parts here.
 
 ### Knowledge lifecycle and tiering
 
-The original had a six-state machine for knowledge items, with only the
-canonical tier retrievable and the rule enforced at the gateway rather
-than in the application.
+The original had a multi-state lifecycle for knowledge items, with only
+the canonical tier retrievable and the rule enforced at the gateway
+rather than in the application.
 
-That enforcement point is a control-plane decision and a good one. The
-state machine it guards is not: it is a data-plane lifecycle, and
-reproducing it here would mean inventing a knowledge base for a deploy
-pipeline that has no use for one. The transferable half — "the guard
-belongs where it cannot be bypassed, not where each caller is trusted to
-apply it" — is already carried by `ACCESS` and by the locality veto.
+That enforcement point is a control-plane decision and a good one, and
+it is the half that is here: "the guard belongs where it cannot be
+bypassed, not where each caller is trusted to apply it" is what `ACCESS`
+and the locality veto are. The lifecycle itself is not here, and this
+page cannot wave that away by saying the domain has no use for one —
+this domain plainly does. It is left out for a narrower reason. The
+pipeline has the lifecycle in miniature already: a document is held at
+the gate and then written to one live tier, which is one transition, not
+a modelled state machine. The states the original adds exist to control
+what a query can see, and nothing here issues a query — so "only the
+canonical tier is retrievable" would be a rule with no observable
+consequence, pinned by a test that exercised nothing. Offline, that
+demonstration would be empty.
 
 ### Retrieval: hybrid search, rank fusion, reranking
 
 Genuinely interesting, and not control plane. Which documents come back
-for a query does not change who may deploy.
+for a query does not change who may publish.
 
 ### Fine-tuning and few-shot libraries
 

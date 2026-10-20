@@ -5,10 +5,10 @@
 
 Scenarios
 ---------
-approve   a ticket goes all the way to deploy, pausing for a human
-reject    the same run, rejected at the gate -- nothing deploys
-ignore    resumed with no decision at all -- still nothing deploys
-rework    the reviewer sends it back; the loop ends at the step guard
+approve   a document reaches the live index, pausing for a human first
+reject    the same run, declined at the gate -- nothing is published
+ignore    resumed with no decision at all -- still nothing is published
+rework    the assessor sends it back; the loop ends at the step guard
 budget    an over-long model response is cut off mid-stream
 gate      a release is blocked by the eval gate, then allowed
 mask      what the model is shown, and who may see it unmasked again
@@ -25,10 +25,10 @@ from __future__ import annotations
 
 import sys
 
-from langgraph.types import Command
-
 import adapters
 import gemma_judge
+from langgraph.types import Command
+
 from agentcp import agents, drift, evals, privacy, providers, quota
 from agentcp.budget import BudgetedStream, BudgetExceeded
 from agentcp.graph import build_graph
@@ -51,9 +51,9 @@ def head(title: str) -> None:
 def show(state: dict) -> None:
     print(f"  trail        {' -> '.join(state.get('completed', [])) or '(none)'}")
     print(f"  steps        {state.get('step_count', 0)} / {state.get('max_steps')}")
-    for key in ("triage_report", "plan_report", "review_report", "deploy_report"):
+    for key in ("triage_report", "index_report", "assessment_report", "publish_report"):
         if key in state:
-            print(f"  {key:<12} {state[key]}")
+            print(f"  {key:<18} {state[key]}")
     calls = state.get("calls") or []
     if calls:
         # `provider` is what the rules selected; `provider_used` is what
@@ -85,16 +85,19 @@ def pipeline(thread: str):
     adapters.reset()
     app = build_graph(judge=JUDGE)
     cfg = {"configurable": {"thread_id": thread}}
-    app.invoke(new_state("ticket_opened", {"ticket": 4821, "pr": 318}, trace_id=thread), cfg)
+    app.invoke(
+        new_state("document_submitted", {"document": 4821, "draft": 318}, trace_id=thread),
+        cfg,
+    )
     return app, cfg
 
 
 def scenario_approve() -> None:
-    head("approve -- a human says yes, and only then does it deploy")
+    head("approve -- a human says yes, and only then does it publish")
     app, cfg = pipeline("approve")
     snap = app.get_state(cfg)
     print(f"  paused at    {snap.next}          <- the run is stopped, not polling")
-    print(f"  deployed?    {'deploy_report' in snap.values}")
+    print(f"  published?   {'publish_report' in snap.values}")
     print("\n  ...a reviewer approves in Slack / the web UI...\n")
     out = app.invoke(Command(update={"human_decision": {"approve": True}}), cfg)
     show(out)
@@ -108,7 +111,7 @@ def scenario_reject() -> None:
         Command(update={"human_decision": {"approve": False, "reason": "no tests"}}), cfg
     )
     show(out)
-    print(f"\n  deploy called? {'deploy' in [n for n, _ in adapters.CALLS]}")
+    print(f"\n  publish called? {'publish' in [n for n, _ in adapters.CALLS]}")
 
 
 def scenario_ignore() -> None:
@@ -119,23 +122,24 @@ def scenario_ignore() -> None:
 
 
 def scenario_rework() -> None:
-    head("rework -- reviewer sends it back; the step guard ends the loop")
+    head("rework -- assessor sends it back; the step guard ends the loop")
     adapters.reset()
     # The rejecting judge *is* this scenario: the loop only exists because
-    # the reviewer keeps saying no. Under --gemma the real model decides
+    # the assessor keeps saying no. Under --gemma the real model decides
     # instead, and whether the loop happens at all becomes its answer --
     # which is the more honest demonstration, so it wins.
     app = build_graph(
-        judge=JUDGE or (lambda prompt, ctx: {"approved": False, "comments": ["add tests"]})
+        judge=JUDGE
+        or (lambda prompt, ctx: {"approved": False, "comments": ["source refs missing"]})
     )
     cfg = {"configurable": {"thread_id": "rework"}}
     out = app.invoke(
-        new_state("ticket_opened", {"ticket": 4821, "pr": 318},
+        new_state("document_submitted", {"document": 4821, "draft": 318},
                   max_steps=6, trace_id="rework"),
         cfg,
     )
     show(out)
-    looped = out.get("completed", []).count("reviewer") > 1
+    looped = out.get("completed", []).count("assessor") > 1
     if looped:
         print()
         print("  the loop did not run forever; max_steps decided when to stop")
@@ -146,7 +150,7 @@ def scenario_rework() -> None:
         # when it did not is the kind of sentence this repo exists to stop
         # writing.
         print()
-        print("  no loop this time -- the reviewer approved, so the run")
+        print("  no loop this time -- the assessor approved, so the run")
         print(f"  went to the gate and stopped at {out.get('step_count')} of"
               f" {out.get('max_steps')} steps. The step guard is still there;")
         print("  nothing asked it to fire.")
@@ -176,7 +180,7 @@ def scenario_budget() -> None:
         app = build_graph(judge=JUDGE)
         cfg = {"configurable": {"thread_id": f"budget-{budget}"}}
         out = app.invoke(
-            new_state("ticket_opened", {"ticket": 4821, "pr": 318},
+            new_state("document_submitted", {"document": 4821, "draft": 318},
                       budget_tokens=budget, trace_id=f"budget-{budget}"),
             cfg,
         )
@@ -190,15 +194,15 @@ def scenario_budget() -> None:
             print(f"               {stopped['agent']} refused: {stopped['refused']}")
             print(f"               tokens generated on that call: {spent}"
                   f"   {'(the model was never called)' if spent == 0 else '(already spent)'}")
-        print(f"               deployed? {out.get('deploy_report', {}).get('deployed', False)}")
+        print(f"               published? {out.get('publish_report', {}).get('published', False)}")
 
     # Which of the two refusals a budget gets depends on what the calls
     # before it cost, so the reading is computed above rather than
     # asserted here. With the deterministic default, triage's reply is
-    # ~6 tokens and a budget of 12 survives it, so the reviewer is
+    # ~6 tokens and a budget of 12 survives it, so the assessor is
     # called and then cut off. With a real model the first call alone
     # is a few hundred tokens and both small budgets are gone before
-    # the reviewer is reached.
+    # the assessor is reached.
     print()
     print("  a refusal before the call is the only one that saves money:")
     print("  the judge is not reached at all. A refusal after it buys")
@@ -295,7 +299,7 @@ def scenario_residency() -> None:
         app = build_graph(judge=JUDGE)
         cfg = {"configurable": {"thread_id": "residency-run"}}
         out = app.invoke(
-            new_state("ticket_opened", {"ticket": 4821, "pr": 318},
+            new_state("document_submitted", {"document": 4821, "draft": 318},
                       sensitivity="restricted", trace_id="residency-run"),
             cfg,
         )
@@ -308,7 +312,7 @@ def scenario_residency() -> None:
     print("  triage asked for a judgement, selection refused before any")
     print("  model was reached, and the node reported severity 'unknown'")
     print("  instead of guessing one. The run ends there: no plan, no")
-    print("  review, no deploy. `provider: 'none'` is the record of a")
+    print("  review, no publish. `provider: 'none'` is the record of a")
     print("  call that was never placed -- the refusal is auditable, which")
     print("  is the difference between declining and silently coping.")
 
@@ -323,7 +327,7 @@ def scenario_quota() -> None:
     app = build_graph(judge=JUDGE)
     cfg = {"configurable": {"thread_id": "quota"}}
     out = app.invoke(
-        new_state("ticket_opened", {"ticket": 4821, "pr": 318},
+        new_state("document_submitted", {"document": 4821, "draft": 318},
                   tenant="trial", trace_id="quota"),
         cfg,
     )
@@ -338,8 +342,8 @@ def scenario_quota() -> None:
 def _run_approving(thread: str, judge=None) -> dict:
     """Drive one run, approving at the gate if it gets that far.
 
-    It may not: a judge that rejects the diff sends the run back to the
-    planner and it ends at the step guard with no gate to approve at. That
+    It may not: a judge that rejects the draft sends the run back to the
+    indexer and it ends at the step guard with no gate to approve at. That
     is a legitimate outcome, so this checks for a pending interrupt rather
     than assuming one.
     """
@@ -347,7 +351,7 @@ def _run_approving(thread: str, judge=None) -> dict:
     app = build_graph(judge=judge)
     cfg = {"configurable": {"thread_id": thread}}
     out = app.invoke(
-        new_state("ticket_opened", {"ticket": 4821, "pr": 318}, trace_id=thread), cfg
+        new_state("document_submitted", {"document": 4821, "draft": 318}, trace_id=thread), cfg
     )
     if app.get_state(cfg).next:
         out = app.invoke(Command(update={"human_decision": {"approve": True}}), cfg)
@@ -379,7 +383,7 @@ def scenario_gemma() -> None:
     print("\n  with the model:")
     show(live)
 
-    verdict = live.get("review_report", {})
+    verdict = live.get("assessment_report", {})
     print(f"\n  severity     {offline['triage_report']['severity']!r} (default)"
           f"  ->  {live['triage_report']['severity']!r} (Gemma)")
     print(f"  approved     {verdict.get('approved')!r}")
@@ -390,20 +394,20 @@ def scenario_gemma() -> None:
     if same_trail:
         print("        <- routing is code, not a prompt")
     else:
-        # Not a failure. The reviewer is *allowed* to send a PR back; what
+        # Not a failure. The assessor is *allowed* to send a PR back; what
         # matters is that the route it took is one the table permits, chosen
         # by `router.route`, not by the model.
         print(f"\n               default: {' -> '.join(offline.get('completed', []))}")
         print(f"               Gemma:   {' -> '.join(live.get('completed', []))}")
-        print("               Gemma rejected the diff, so the reviewer sent it")
+        print("               Gemma rejected the draft, so the assessor sent it")
         print("               back -- an edge the route table already has.")
     print(f"  same steps?  {offline.get('step_count')} vs {live.get('step_count')}")
 
-    deployed = live.get("deploy_report", {}).get("deployed")
-    if deployed is None:
-        print("  deployed?    never reached the deployer")
+    published = live.get("publish_report", {}).get("published")
+    if published is None:
+        print("  published?    never reached the publisher")
     else:
-        print(f"  deployed?    {deployed}         <- still only because a human said yes")
+        print(f"  published?    {published}         <- still only because a human said yes")
 
     est = sum(c["tokens_estimated"] for c in live.get("calls", []))
     act = sum(c["tokens_actual"] or 0 for c in live.get("calls", []))

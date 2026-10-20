@@ -184,7 +184,7 @@
    "label": "帶決定恢復"
   }
  ],
- "footer": "沒有決定就恢復，deployer 仍然拒絕 —— 缺席不等於同意",
+ "footer": "沒有決定就恢復，publisher 仍然拒絕 —— 缺席不等於同意",
  "footer_x": 36,
  "footer_y": 724
 }

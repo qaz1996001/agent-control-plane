@@ -45,19 +45,19 @@ def test_the_agent_type_and_the_graph_agree_on_which_nodes_exist():
 
 
 def test_step_budget_outranks_a_pending_handoff():
-    s = new_state("ticket_opened", max_steps=3)
+    s = new_state("document_submitted", max_steps=3)
     s["step_count"] = 3
-    s["next_agent"] = "planner"
+    s["next_agent"] = "indexer"
     s["requires_approval"] = True          # even this loses to the guard
     assert router.next_node(s) == "__end__"
 
 
 def test_approval_outranks_handoff():
-    s = new_state("ticket_opened")
-    s["next_agent"] = "deployer"
+    s = new_state("document_submitted")
+    s["next_agent"] = "publisher"
     s["requires_approval"] = True
     assert router.next_node(s) == "approval_gate"
 
 
 def test_no_handoff_means_stop():
-    assert router.next_node(new_state("ticket_opened")) == "__end__"
+    assert router.next_node(new_state("document_submitted")) == "__end__"

@@ -9,13 +9,13 @@ def registry():
     """A clean registry of fake tools for every test."""
     tools.REGISTRY.clear()
     for name, result in [
-        ("read_ticket", {"title": "login fails", "body": "500 on submit"}),
-        ("label_ticket", {"labelled": True}),
-        ("write_plan", {"steps": ["reproduce", "fix", "test"]}),
-        ("read_diff", {"files": 3, "additions": 40}),
-        ("post_comment", {"posted": True}),
-        ("read_plan", {"steps": ["reproduce", "fix", "test"]}),
-        ("deploy", {"release": "r-123"}),
+        ("read_document", {"title": "calibration procedure", "body": "revision C, 4 sections"}),
+        ("tag_document", {"tagged": True}),
+        ("write_index", {"chunks": ["split", "strip", "cite"]}),
+        ("read_draft", {"sections": 3, "added": 40}),
+        ("post_finding", {"filed": True}),
+        ("read_index", {"steps": ["reproduce", "fix", "test"]}),
+        ("publish", {"release": "r-123"}),
     ]:
         tools.register(
             tools.Tool(name, f"fake {name}", {"type": "object"}, lambda a, r=result: dict(r))
@@ -45,4 +45,4 @@ def exploding_tool():
 
 @pytest.fixture
 def state():
-    return new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="t-run-1")
+    return new_state("document_submitted", {"document": 42, "draft": 7}, trace_id="t-run-1")

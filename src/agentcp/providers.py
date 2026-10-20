@@ -26,8 +26,9 @@ not in the ordering rules -- those are the part worth showing.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, Literal
+from typing import Literal
 
 Sensitivity = Literal["open", "restricted"]
 Complexity = Literal["low", "high"]

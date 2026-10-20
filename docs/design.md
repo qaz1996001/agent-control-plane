@@ -19,10 +19,10 @@ cycle cannot out-vote it.
 flowchart TD
     T(["trigger"]) --> R{"ROUTE_TABLE<br/>lookup"}
     R -->|unknown| X["UnknownTrigger<br/>raised, no default"]
-    R -->|ticket_opened| A["triage"]
-    R -->|plan_ready| B["planner"]
-    R -->|review_requested| C["reviewer"]
-    R -->|review_passed| D["deployer"]
+    R -->|document_submitted| A["triage"]
+    R -->|index_ready| B["indexer"]
+    R -->|assessment_requested| C["assessor"]
+    R -->|assessment_passed| D["publisher"]
 
     A --> N{"next_node"}
     B --> N
@@ -37,7 +37,7 @@ flowchart TD
     G -.->|"interrupt_before:<br/>run stops and is checkpointed"| H(["waiting for a human"])
     H -->|"resume with approve=True"| D
     H -->|"resume with approve=False<br/>or with nothing"| D
-    D -.->|"no approval on record"| E3(["END — the deployer refused"])
+    D -.->|"no approval on record"| E3(["END — the publisher refused"])
 
     style X fill:#fce8e6,stroke:#a50e0e
     style H fill:#fff7ed,stroke:#f97316
@@ -48,11 +48,11 @@ flowchart TD
 The dashed edge is the only place the system waits for a person, and it is
 enforced by the runtime rather than by a node remembering to check.
 
-Both resume paths run the deployer; the refusal lives *inside* it. That is
-why "resume with nothing" cannot deploy — there is no separate decline
+Both resume paths run the publisher; the refusal lives *inside* it. That is
+why "resume with nothing" cannot publish — there is no separate decline
 branch to get wrong — and it is also why `approval_gate` decides nothing:
 it does not read `human_decision` at all, it clears the pending flag and
-returns. A rejection is declined by the deployer, not at the gate.
+returns. A rejection is declined by the publisher, not at the gate.
 
 **Precedence matters, and is tested:** `test_step_budget_outranks_a_pending_handoff`
 sets `next_agent` *and* `requires_approval` on an over-budget state and
@@ -62,7 +62,7 @@ asserts the run still ends.
 
 ## 2. Permission is checked at the call, and would be advertised from the same table
 
-A prompt saying "do not deploy" is a request. `ACCESS` is a check.
+A prompt saying "do not publish" is a request. `ACCESS` is a check.
 `allowed()` is the single source for both readings of that table —
 `invoke` checks it, `schemas_for` renders it — so a tool cannot be
 advertised to an agent that is forbidden to run it. No node here lets a
@@ -74,18 +74,18 @@ cheap half of that work, and the only half that transfers.
 flowchart LR
     subgraph reg["REGISTRY — every tool"]
         direction TB
-        T1["read_ticket"]
-        T2["write_plan"]
-        T3["read_diff"]
-        T4["deploy"]
+        T1["read_document"]
+        T2["write_index"]
+        T3["read_draft"]
+        T4["publish"]
     end
 
     subgraph acc["ACCESS — agent to allow-list"]
         direction TB
-        P1["triage → read_ticket, label_ticket"]
-        P2["planner → read_ticket, write_plan"]
-        P3["reviewer → read_diff, post_comment"]
-        P4["deployer → read_plan, deploy"]
+        P1["triage → read_document, tag_document"]
+        P2["indexer → read_document, write_index"]
+        P3["assessor → read_draft, post_finding"]
+        P4["publisher → read_index, publish"]
     end
 
     reg --> S["schemas_for(agent)"]
@@ -217,8 +217,8 @@ not answerable after the fact once the health picture has changed.
 | A judge cannot move the route | `test_a_judge_that_returns_control_fields_does_not_get_control`, `test_the_judge_is_consulted_twice_and_the_route_does_not_depend_on_it` |
 | The step guard beats a hand-off and an approval | `test_step_budget_outranks_a_pending_handoff` |
 | The run genuinely pauses at the gate | `test_run_actually_stops_at_the_gate` |
-| Absence of a decision is not consent | `test_resuming_with_no_decision_still_refuses_to_deploy` |
-| The reviewer does not write `human_decision` | `test_the_reviewer_cannot_approve_on_the_humans_behalf` |
+| Absence of a decision is not consent | `test_resuming_with_no_decision_still_refuses_to_publish` |
+| The assessor does not write `human_decision` | `test_the_assessor_cannot_approve_on_the_humans_behalf` |
 | Offered schemas equal the allow-list | `test_schemas_offered_match_the_allow_list` |
 | A raising tool returns an error object instead of raising | `test_a_raising_tool_degrades_instead_of_crashing` |
 | The budget bites mid-stream | `test_stream_is_cut_mid_way_not_after_the_fact` |

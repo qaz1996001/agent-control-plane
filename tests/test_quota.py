@@ -45,7 +45,7 @@ def test_reset_starts_a_new_window_for_one_tenant_only():
 
 def test_a_node_refuses_once_the_tenant_has_nothing_left():
     agents.LEDGER.charge("default", quota.DEFAULT_LIMIT)
-    state = new_state("ticket_opened", {"ticket": 1}, trace_id="t-1")
+    state = new_state("document_submitted", {"document": 1}, trace_id="t-1")
     patch = agents.triage_node(state)
     assert patch["triage_report"]["refused"]
     assert patch["next_agent"] is None
@@ -53,7 +53,7 @@ def test_a_node_refuses_once_the_tenant_has_nothing_left():
 
 def test_the_refusal_is_recorded_rather_than_raised_into_the_graph():
     agents.LEDGER.charge("default", quota.DEFAULT_LIMIT)
-    state = new_state("ticket_opened", {"ticket": 1}, trace_id="t-1")
+    state = new_state("document_submitted", {"document": 1}, trace_id="t-1")
     patch = agents.triage_node(state)
     assert len(patch["calls"]) == 1
     assert patch["calls"][0]["refused"]

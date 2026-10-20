@@ -15,7 +15,7 @@ def test_masked_text_contains_no_real_value_anywhere():
 
 
 def test_the_same_value_gets_the_same_placeholder():
-    masked, mapping = privacy.mask(TEXT, "t-1")
+    masked, _ = privacy.mask(TEXT, "t-1")
     assert masked.count("<EMAIL_1>") == 2
     assert "<EMAIL_2>" not in masked
 
@@ -28,7 +28,7 @@ def test_each_kind_is_numbered_separately():
 
 
 def test_an_address_is_not_eaten_by_the_handle_pattern():
-    masked, mapping = privacy.mask("write to sam.okafor@example.com", "t-1")
+    masked, _ = privacy.mask("write to sam.okafor@example.com", "t-1")
     assert masked == "write to <EMAIL_1>"
     assert "USER" not in masked
 

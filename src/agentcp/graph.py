@@ -22,7 +22,7 @@ from agentcp import agents, router
 from agentcp.state import PROTECTED, PipelineState
 
 #: Node names in the order the router may reach them.
-NODE_NAMES = ("triage", "planner", "reviewer", "approval_gate", "deployer")
+NODE_NAMES = ("triage", "indexer", "assessor", "approval_gate", "publisher")
 
 
 class DurabilityNotConfigured(RuntimeError):

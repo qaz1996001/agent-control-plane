@@ -110,7 +110,7 @@
     <line data-graph-role="decoration" x1="268.0" y1="662.0" x2="298.0" y2="662.0" stroke="#10b981" stroke-width="2.4" marker-end="url(#arrowB)"/>
     <text data-graph-role="decoration" x="308.0" y="666.0" class="legend">帶決定恢復</text>
   </g>
-  <g id="footer" data-graph-role="reserved" data-graph-bounds="36,712,260,728">
-  <text x="36.0" y="724.0" class="footnote">沒有決定就恢復，deployer 仍然拒絕 —— 缺席不等於同意</text>
+  <g id="footer" data-graph-role="reserved" data-graph-bounds="36,712,267,728">
+  <text x="36.0" y="724.0" class="footnote">沒有決定就恢復，publisher 仍然拒絕 —— 缺席不等於同意</text>
   </g>
 </svg>

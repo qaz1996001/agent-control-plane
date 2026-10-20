@@ -9,18 +9,18 @@ from agentcp.tools import AccessDenied, ToolNotFound
 
 
 def test_agent_can_call_its_own_tools():
-    assert tools.invoke("triage", "read_ticket", {})["title"] == "login fails"
+    assert tools.invoke("triage", "read_document", {})["title"] == "calibration procedure"
 
 
 def test_agent_cannot_call_another_agents_tool():
     with pytest.raises(AccessDenied) as e:
-        tools.invoke("reviewer", "deploy", {})
-    assert "deploy" in str(e.value)
+        tools.invoke("assessor", "publish", {})
+    assert "publish" in str(e.value)
 
 
-def test_deploy_is_reachable_only_by_the_deployer():
-    allowed = [a for a, t in tools.ACCESS.items() if "deploy" in t]
-    assert allowed == ["deployer"]
+def test_publish_is_reachable_only_by_the_publisher():
+    allowed = [a for a, t in tools.ACCESS.items() if "publish" in t]
+    assert allowed == ["publisher"]
 
 
 def test_unknown_tool_raises():
@@ -29,8 +29,8 @@ def test_unknown_tool_raises():
 
 
 def test_a_raising_tool_degrades_instead_of_crashing(exploding_tool):
-    exploding_tool("read_ticket")
-    out = tools.invoke("triage", "read_ticket", {})
+    exploding_tool("read_document")
+    out = tools.invoke("triage", "read_document", {})
     assert "error" in out and "upstream down" in out["error"]
 
 
@@ -46,8 +46,8 @@ def test_unknown_agent_is_offered_nothing():
 
 
 def test_a_tenant_rule_narrows_what_the_role_allows():
-    assert "deploy" in tools.allowed("deployer")
-    assert "deploy" not in tools.allowed("deployer", "trial")
+    assert "publish" in tools.allowed("publisher")
+    assert "publish" not in tools.allowed("publisher", "trial")
 
 
 def test_a_tenant_rule_can_only_subtract_never_grant():
@@ -68,19 +68,19 @@ def test_schemas_match_the_allow_list_for_every_agent_and_tenant():
 
 def test_invoking_a_tool_withheld_from_the_tenant_is_denied():
     with pytest.raises(tools.AccessDenied) as exc:
-        tools.invoke("deployer", "deploy", {}, "trial")
+        tools.invoke("publisher", "publish", {}, "trial")
     assert "trial" in str(exc.value)
 
 
-def test_the_deployer_refuses_rather_than_crashing_on_a_tenant_denial():
+def test_the_publisher_refuses_rather_than_crashing_on_a_tenant_denial():
     """An approval already given must not be lost to a stack trace."""
     from agentcp.state import new_state
 
-    state = new_state("ticket_opened", {"ticket": 1}, tenant="trial")
+    state = new_state("document_submitted", {"document": 1}, tenant="trial")
     state["human_decision"] = {"approve": True}
-    patch = agents.deployer_node(state)
-    assert patch["deploy_report"]["deployed"] is False
-    assert "may not call 'deploy'" in patch["deploy_report"]["reason"]
+    patch = agents.publisher_node(state)
+    assert patch["publish_report"]["published"] is False
+    assert "may not call 'publish'" in patch["publish_report"]["reason"]
 
 
 def test_a_tools_error_is_not_handed_to_a_model_as_if_it_were_data(exploding_tool):
@@ -91,12 +91,12 @@ def test_a_tools_error_is_not_handed_to_a_model_as_if_it_were_data(exploding_too
     an approval. But nothing read that key, so the error object became
     the judge's context: asked to review ``error: RuntimeError: ...``,
     the model answered, the answer looked exactly like a review of a real
-    diff, and the run deployed to production on zero data.
+    draft, and the run published to production on zero data.
 
     ``consult`` now refuses first, which is why the spy below is never
     called at all.
     """
-    exploding_tool("read_diff")
+    exploding_tool("read_draft")
     asked = []
 
     def spy(prompt, context):
@@ -106,15 +106,15 @@ def test_a_tools_error_is_not_handed_to_a_model_as_if_it_were_data(exploding_too
     app = build_graph(judge=spy)
     cfg = {"configurable": {"thread_id": "tool-error"}}
     out = app.invoke(
-        new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="tool-error"), cfg
+        new_state("document_submitted", {"document": 42, "draft": 7}, trace_id="tool-error"), cfg
     )
 
-    assert "review diff" not in asked, "the model was asked to judge an error string"
-    assert out["review_report"]["approved"] is False
-    assert "upstream tool failed" in out["review_report"]["refused"]
-    assert "deploy_report" not in out
+    assert "review draft" not in asked, "the model was asked to judge an error string"
+    assert out["assessment_report"]["approved"] is False
+    assert "upstream tool failed" in out["assessment_report"]["refused"]
+    assert "publish_report" not in out
     assert app.get_state(cfg).next == ()
 
     refused = [c for c in out["calls"] if c["refused"]]
-    assert [c["agent"] for c in refused] == ["reviewer"]
+    assert [c["agent"] for c in refused] == ["assessor"]
     assert refused[0]["tokens_estimated"] == 0

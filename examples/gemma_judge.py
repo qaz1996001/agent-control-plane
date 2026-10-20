@@ -36,8 +36,8 @@ DEFAULT_BASE_URL = "http://127.0.0.1:11434"
 
 # -- the two judgement points, and the shape each one must return ----------
 #
-# ``agents.triage_node`` asks "classify severity"; ``agents.reviewer_node``
-# asks "review diff". Those are the only two prompts the control plane ever
+# ``agents.triage_node`` asks "classify severity"; ``agents.assessor_node``
+# asks "review draft". Those are the only two prompts the control plane ever
 # sends, so the schema is known ahead of time and does not have to be guessed
 # from the model's reply. Ollama takes it as the ``format`` parameter and
 # constrains decoding to it.
@@ -47,7 +47,8 @@ SEVERITIES = ["low", "normal", "high", "critical"]
 CALL_SITES = {
     "classify severity": {
         "instruction": (
-            "You are triaging a bug ticket. Reply with its severity, "
+            "You are triaging a document submitted to a retrieval corpus. "
+            "Reply with its severity, "
             f"one of: {', '.join(SEVERITIES)}."
         ),
         "schema": {
@@ -56,9 +57,10 @@ CALL_SITES = {
             "required": ["severity"],
         },
     },
-    "review diff": {
+    "review draft": {
         "instruction": (
-            "You are reviewing a pull request. Decide whether it may proceed. "
+            "You are assessing a draft index entry. Decide whether it may be "
+            "published. "
             "Reply with approved (true/false) and a short list of comments."
         ),
         "schema": {
@@ -78,7 +80,7 @@ CALL_SITES = {
 # keeps the example honest about what it substitutes.
 FALLBACKS = {
     "classify severity": {"severity": "normal"},
-    "review diff": {"approved": True, "comments": []},
+    "review draft": {"approved": True, "comments": []},
 }
 
 
@@ -240,7 +242,7 @@ def _coerce(prompt: str, raw: str) -> tuple[dict, str | None]:
             return {}, f"severity {severity!r} not in {SEVERITIES}"
         return {"severity": severity}, None
 
-    if prompt == "review diff":
+    if prompt == "review draft":
         approved = data.get("approved")
         if not isinstance(approved, bool):
             return {}, f"approved {approved!r} is not a boolean"

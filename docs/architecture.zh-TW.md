@@ -14,7 +14,7 @@
 
 `route()` 把 trigger 變成進入節點。每個節點跑完後，`next_node()` 套用固定的優先序：步數上限最先，其次待核可，再來明確交棒，最後停止。上限排第一，所以循環投不贏它。
 
-`approval_gate` 以 `interrupt_before` 編譯，走到就停住並存檔。**核可與未核可兩條路最後都會走到 deployer**——拒絕的判斷在 deployer 裡面，這就是為什麼「不帶決定恢復」依然部署不了。
+`approval_gate` 以 `interrupt_before` 編譯，走到就停住並存檔。**核可與未核可兩條路最後都會走到 publisher**——拒絕的判斷在 publisher 裡面，這就是為什麼「不帶決定恢復」依然發布不了。
 
 對應原始碼：[`router.py`](../src/agentcp/router.py)、[`graph.py`](../src/agentcp/graph.py)
 
@@ -38,13 +38,13 @@
 
 ![資料狀態](state.svg)
 
-總共 18 個欄位。「只有一個寫入者」對四格 `*_report` 與 `human_decision` 成立，對其餘的不成立：`next_agent` 由四個節點寫，`step_count` 與 `completed` 由五個寫（每個節點都經過 `_advance`），`calls` 與 `tokens_used` 由兩個寫，`requires_approval` 也是兩個——審查者設起來、閘門清掉。而圖是把這些歸在「節點寫入」底下，沒有逐格指名，所以它標出的是一個欄位**什麼時候**被寫，不是被誰寫。
+總共 18 個欄位。「只有一個寫入者」對四格 `*_report` 與 `human_decision` 成立，對其餘的不成立：`next_agent` 由四個節點寫，`step_count` 與 `completed` 由五個寫（每個節點都經過 `_advance`），`calls` 與 `tokens_used` 由兩個寫，`requires_approval` 也是兩個——評斷者設起來、閘門清掉。而圖是把這些歸在「節點寫入」底下，沒有逐格指名，所以它標出的是一個欄位**什麼時候**被寫，不是被誰寫。
 
 **`human_decision` 那一列是重點**：會寫它的只有「帶著決定恢復一個被中斷的執行」，而**節點只要嘗試就會拋 `ProtectedFieldWritten`**。這現在是**圖的性質**，不是「目前恰好存在的那些節點」的性質——`build_graph` 包住每一個節點，拒絕任何指名 `state.PROTECTED` 裡欄位的 patch；`max_steps`、`sensitivity`、`tenant`、`trace_id` 也由同一道守衛保護。
 
-不久之前它還只是慣例：`PipelineState` 是裸 `TypedDict`，`graph.py` 把 patch 原封不動併進 state，一個寫 `human_decision` 的節點就偽造出一次人工核可而沒有任何東西退回它——接著「不帶決定恢復」會**直接部署**，正好穿過那條本來要防這件事的檢查。[`errata.md`](errata.md) 的 A1 保留了這筆記錄，因為「一個宣稱是怎麼走到超出它證據的」比那句被修好的話更有價值。
+不久之前它還只是慣例：`PipelineState` 是裸 `TypedDict`，`graph.py` 把 patch 原封不動併進 state，一個寫 `human_decision` 的節點就偽造出一次人工核可而沒有任何東西退回它——接著「不帶決定恢復」會**直接發布**，正好穿過那條本來要防這件事的檢查。[`errata.md`](errata.md) 的 A1 保留了這筆記錄，因為「一個宣稱是怎麼走到超出它證據的」比那句被修好的話更有價值。
 
-`next_agent` **刻意不受保護**：交棒就是節點存在的目的。節點仍然可以繞過閘門，而擋下部署的是 deployer 自己的拒絕——它需要的那個決定，正是那個偽造不了的欄位。
+`next_agent` **刻意不受保護**：交棒就是節點存在的目的。節點仍然可以繞過閘門，而擋下發布的是 publisher 自己的拒絕——它需要的那個決定，正是那個偽造不了的欄位。
 
 有四個欄位在 `new_state` 時設定一次，之後只讀不寫——`trace_id`、`tenant`、`sensitivity`、`max_steps`。它們是這次執行的身分與限制，執行過程中沒有任何東西可以放寬它們。在建立時就給每一個明確的值、而不是在使用點才套預設，是刻意的：**「沒設定」與「設定成預設值」不該讀起來一樣**。
 
@@ -60,7 +60,7 @@
 uv run --with langgraph python examples/run_pipeline.py approve
 ```
 
-**多數情境的結果是「沒有部署」**，這是刻意的：對一條部署流水線來說，值得看的正是它拒絕的那些情況，而拒絕的方式本來就比放行多。
+**多數情境的結果是「沒有發布」**，這是刻意的：對一條收錄發布流水線來說，值得看的正是它拒絕的那些情況，而拒絕的方式本來就比放行多。
 
 ---
 
