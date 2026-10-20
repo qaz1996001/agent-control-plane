@@ -30,8 +30,8 @@
    "y": 100,
    "width": 560,
    "height": 60,
-   "label": "部署成功",
-   "sublabel": "軌跡 triage → planner → reviewer → gate → deployer",
+   "label": "發布成功",
+   "sublabel": "軌跡 triage → indexer → assessor → gate → publisher",
    "fill": "#e6f4ea",
    "stroke": "#1e7e34"
   },
@@ -55,8 +55,8 @@
    "y": 204,
    "width": 560,
    "height": 60,
-   "label": "不部署",
-   "sublabel": "deploy 工具從未被呼叫，並記下原因",
+   "label": "不發布",
+   "sublabel": "publish 工具從未被呼叫，並記下原因",
    "fill": "#fce8e6",
    "stroke": "#a50e0e"
   },
@@ -80,7 +80,7 @@
    "y": 308,
    "width": 560,
    "height": 60,
-   "label": "一樣不部署",
+   "label": "一樣不發布",
    "sublabel": "缺席不等於同意",
    "fill": "#fce8e6",
    "stroke": "#a50e0e"
@@ -93,7 +93,7 @@
    "width": 300,
    "height": 60,
    "label": "rework",
-   "sublabel": "審查一直退回",
+   "sublabel": "評斷一直退回",
    "fill": "#ffffff",
    "stroke": "#cbd5e1",
    "flat": true
@@ -106,7 +106,7 @@
    "width": 560,
    "height": 60,
    "label": "停在步數上限",
-   "sublabel": "軌跡出現 planner 與 reviewer 交替，6 / 6 收手",
+   "sublabel": "軌跡出現 indexer 與 assessor 交替，6 / 6 收手",
    "fill": "#fff7ed",
    "stroke": "#f97316"
   },
@@ -368,7 +368,7 @@
    "label": "品質閘門"
   }
  ],
- "footer": "六個會跑完整流程的情境裡，四個的結果是「沒有部署」 —— 值得看的正是它拒絕的那些情況",
+ "footer": "六個會跑完整流程的情境裡，四個的結果是「沒有發布」 —— 值得看的正是它拒絕的那些情況",
  "footer_x": 36,
  "footer_y": 1214
 }

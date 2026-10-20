@@ -74,7 +74,7 @@
   <g id="node-payload" data-graph-role="node" data-node-id="payload" data-semantic-role="rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="64,140,254,216">
   <rect x="64.0" y="140.0" width="190.0" height="76.0" rx="10.0" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.8"/>
   <text data-text-role="title" data-full-text="payload" data-text-max-width="166.0" x="159.0" y="178.0" text-anchor="middle" class="node-title" font-size="18">payload</text>
-  <text data-text-role="subtitle" data-full-text="ticket / pr 編號" data-text-max-width="166.0" x="159.0" y="200.0" text-anchor="middle" class="node-sub" font-size="12">ticket / pr 編號</text>
+  <text data-text-role="subtitle" data-full-text="document / draft 編號" data-text-max-width="166.0" x="159.0" y="200.0" text-anchor="middle" class="node-sub" font-size="12">document / draft 編號</text>
   </g>
   <g id="node-agents" data-graph-role="node" data-node-id="agents" data-semantic-role="double_rect" data-motion-role="" data-motion-stage="" data-motion-order="" data-parent="" data-deployment-id="" data-topic-id="" data-span-id="" data-station-order="" data-status="" data-start-ms="" data-duration-ms="" data-parent-span="" data-graph-bounds="304,140,544,216">
   <rect x="304.0" y="140.0" width="240.0" height="76.0" rx="10.0" fill="#eff6ff" stroke="#3b82f6" stroke-width="2.0" filter="url(#shadowSoft)"/>

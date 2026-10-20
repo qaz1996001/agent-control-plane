@@ -121,14 +121,14 @@
       "stroke": "#cbd5e1"
     },
     {
-      "id": "deploy",
+      "id": "publish",
       "kind": "rect",
       "x": 756,
       "y": 530,
       "width": 208,
       "height": 82,
-      "label": "deployer",
-      "sublabel": "沒有 approve 就不部署",
+      "label": "publisher",
+      "sublabel": "沒有 approve 就不發布",
       "fill": "#e6f4ea",
       "stroke": "#1e7e34"
     }
@@ -171,7 +171,7 @@
     {
       "id": "e5",
       "source": "human",
-      "target": "deploy",
+      "target": "publish",
       "source_port": "bottom",
       "target_port": "top",
       "flow": "write",

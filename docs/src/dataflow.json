@@ -50,7 +50,7 @@
    "width": 190,
    "height": 76,
    "label": "payload",
-   "sublabel": "ticket / pr 編號",
+   "sublabel": "document / draft 編號",
    "fill": "#ffffff",
    "stroke": "#cbd5e1",
    "flat": true
