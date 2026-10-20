@@ -9,13 +9,13 @@ uv run --with pytest --with langgraph pytest -q                    # 116 passed
 uv run --with langgraph python examples/run_pipeline.py            # 10 個情境
 ```
 
-底下每一項主張都對應那十個情境裡的一個，而每個情境都會把實際發生的事印出來。多數情境的結尾是**沒有部署**。這正是預期的形狀：對一條部署流水線來說，值得看的是它**拒絕**的時候，而拒絕的方式比放行的方式多。
+底下每一項主張都對應那十個情境裡的一個，而每個情境都會把實際發生的事印出來。多數情境的結尾是**沒有發布**。這正是預期的形狀：對一條收錄發布流水線來說，值得看的是它**拒絕**的時候，而拒絕的方式比放行的方式多。
 
 執行層用 LangGraph（節點執行、checkpoint，以及讓「等人核可」成為真正暫停的 interrupt）。但路由策略是一個吃 state 的普通函式，**不建圖也測得出來**。
 
 程式實際怎麼跑的四個視圖——程式流程、資料流、資料狀態、使用情境——在 [docs/architecture.zh-TW.md](docs/architecture.zh-TW.md)。哪些東西**刻意不做**、以及為什麼，在 [docs/scope.zh-TW.md](docs/scope.zh-TW.md)。
 
-領域選的是軟體交付流水線——Ticket → 規劃 → 審查 → 部署——因為在這個領域，「是 Agent 自己決定要部署的」是一句你不會想講出口的話。
+領域選的是檢索語料的收錄與發布流水線——一份文件先被分流，然後建索引、被評斷，扣在人工閘門前，最後才推上線上索引——因為在這個領域，「是 Agent 自己決定要發布的」是一句你不會想講出口的話。而這個域刻意選在**通用的那一層**，理由寫在本頁最後的「這是從哪來的」。
 
 ---
 
@@ -26,7 +26,7 @@ uv run --with langgraph python examples/run_pipeline.py            # 10 個情�
 - 同一個輸入明天可能走不同的路，所以失敗的執行**無法重放比對**；
 - 路由走錯是「提示詞的 bug」——你得改措辭、重跑評測，而不是讀一行程式碼；
 - 「這一步可以用哪些工具」寫在提示詞裡，那是**請求**，不是檢查；
-- 部署可能只是因為模型被說服了應該部署。
+- 發布可能只是因為模型被說服了應該發布。
 
 這些都不是反對使用模型，而是在講**用在哪裡**。
 
@@ -39,7 +39,7 @@ uv run --with langgraph python examples/run_pipeline.py            # 10 個情�
 | 重放失敗的執行 | 近似 | 精確 |
 | 證明「這裡沒有跑過模型」 | 做不到 | 一條測試 |
 
-需要判斷的工作仍然交給模型——分類這張 ticket、審查這份 diff。那些是可注入的 callable（`Judge`），而這同時讓「**把所有模型進入點都弄壞，控制平面照樣跑完**」從一句宣稱變成一條斷言。
+需要判斷的工作仍然交給模型——分類這份文件、評斷這份草稿。那些是可注入的 callable（`Judge`），而這同時讓「**把所有模型進入點都弄壞，控制平面照樣跑完**」從一句宣稱變成一條斷言。
 
 ### 六個性質，六個機制
 
@@ -57,13 +57,13 @@ uv run --with langgraph python examples/run_pipeline.py            # 10 個情�
 
 **預算與租戶配額都做不到的那件事**，情境裡也寫明了：一次把答案給完的 judge，在任何東西能開始計數之前，就已經生成並被計費了整份回覆。在那個時間點拒絕買到的是**正確性，不是額度**。兩者在結構上完全對稱，在 `consult` 裡隔幾行先後檢查，而且都是**呼叫之前**的閘門：帳本是 judge 回傳之後才扣的，所以配額用盡擋的是**下一次**呼叫，不是這一次。**已經在途的那一份回覆，這裡沒有任何機制擋得住。** `BudgetedStream` 的逐塊守衛是為一個它還沒被餵進來的串流而寫的——`_chunks` 切的是一份早就完整抵達的回覆。
 
-**核可** — graph 以 `interrupt_before=["approval_gate"]` 編譯。執行走到閘門就停住並存檔。在有人帶著決定恢復它之前，什麼都不會部署；而**帶著「沒有決定」恢復一樣會拒絕**——沒有決定不等於同意。
+**核可** — graph 以 `interrupt_before=["approval_gate"]` 編譯。執行走到閘門就停住並存檔。在有人帶著決定恢復它之前，什麼都不會發布；而**帶著「沒有決定」恢復一樣會拒絕**——沒有決定不等於同意。
 
 > 三個情境、一個機制：`approve`、`reject`、`ignore`——最後那個就是「不帶決定恢復」。由 `test_hitl.py` 釘住。
 
 **遮罩** — `privacy.mask` 在模型看到之前，把地址、內部主機名、帳號代號換成佔位符；這一半每一次執行都會跑到。`restore` 是同一套機制的另一半，而它是這條流水線**走不到**的那一半：被遮罩的是送給 judge 的**脈絡**，而 verdict 是模型自己的話，所以一次執行的答案裡根本沒有我們放進去的佔位符可還原——`consult` 回傳那份映射，執行就把它丟了。`restore` 只對握有權限的檢視者還原，而且沒有權限時**整段拒絕**，不做「能還原多少算多少」：部分還原照樣外洩，而且讀起來像是什麼都沒被扣住。映射綁定這一次執行，而且永不寫進 state——因為 state 會被 checkpoint。
 
-> 跑 `mask`：它會印出模型看到的佔位符文字，以及 `restore` 被拒絕的兩種方式。它在一般執行裡也會啟動：diff fixture 帶了作者信箱與建置主機，所以 `approve` 與 `gemma` 的 assessor 那筆 call record 是 `masked: True`。由 `test_privacy.py` 釘住。
+> 跑 `mask`：它會印出模型看到的佔位符文字，以及 `restore` 被拒絕的兩種方式。它在一般執行裡也會啟動：draft fixture 帶了作者信箱與建置主機，所以 `approve` 與 `gemma` 的 assessor 那筆 call record 是 `masked: True`。由 `test_privacy.py` 釘住。
 
 **供應商選擇** — `providers.choose` 依序套三道過濾：健康狀態、地域**否決**、成本偏好。受限內容碰不到遠端供應商，**即使那是唯一還活著的那個**——答案是「沒有供應商」，不是「就這一次」。容錯可以跨成本偏好，永遠不能跨否決。
 
@@ -86,10 +86,10 @@ uv run --with langgraph python examples/run_pipeline.py approve    # 只跑一�
 
 | 情境 | 展示什麼 |
 |---|---|
-| `approve` | 執行暫停、人核可、**然後才**部署 |
+| `approve` | 執行暫停、人核可、**然後才**發布 |
 | `reject`  | 人工拒絕 —— publisher 拒絕執行，`publish` 從未被呼叫 |
 | `ignore`  | 不帶決定恢復 —— 一樣拒絕 |
-| `rework`  | 審查退回；迴圈停在步數上限 |
+| `rework`  | 評斷退回；迴圈停在步數上限 |
 | `budget`  | 過長的回應在中途被切斷，之後真實用量覆寫估算值 |
 | `gate`    | 發布被評測閘門擋下、修好後放行；同一指標的漂移偵測 |
 | `mask`    | 模型看到的是什麼，以及還原被拒絕的兩種方式 |
@@ -101,27 +101,37 @@ uv run --with langgraph python examples/run_pipeline.py approve    # 只跑一�
 
 ```
 --------------------------------------------------------------------------
-approve -- a human says yes, and only then does it deploy
+approve -- a human says yes, and only then does it publish
 --------------------------------------------------------------------------
   paused at    ('approval_gate',)          <- 執行停住了，不是在輪詢
-  deployed?    False
+  published?   False
 
-  ...a assessor approves in Slack / the web UI...
+  ...a curator approves in Slack / the web UI...
 
   trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8
-  publish_report {'deployed': True, 'result': {'workflow': 'deploy.yml', ...}}
+  triage_report      {'severity': 'normal', 'document': {'id': 4821, 'title': 'Calibration procedure, revision C', 'submitter': 'support'}}
+  index_report       {'entry': {'chunks': ['split by section', 'strip boilerplate', 'attach source refs']}}
+  assessment_report  {'approved': True, 'comments': [], 'text': 'draft assessed, no blocking findings.'}
+  publish_report     {'published': True, 'result': {'index': 'corpus-live', 'revision': 99214, 'tier': 'published'}}
   model calls  2  (triage->local-small unmasked, assessor->local-small masked)
-  tokens       15 / 2000   (0/2 settled against the provider's count)
+  tokens       16 / 2000   (0/2 settled against the provider's count)
 
-  tools called ['read_document', 'write_index', 'read_draft', 'deploy']
+  tools called ['read_document', 'write_index', 'read_draft', 'publish']
+
 ```
 
-`rework`，審查一直退回的情況：
+`rework`，評斷一直退回的情況：
 
 ```
   trail        triage -> indexer -> assessor -> indexer -> assessor -> indexer
   steps        6 / 6
+  triage_report      {'severity': 'normal', 'document': {'id': 4821, 'title': 'Calibration procedure, revision C', 'submitter': 'support'}}
+  index_report       {'entry': {'chunks': ['split by section', 'strip boilerplate', 'attach source refs']}}
+  assessment_report  {'approved': False, 'comments': ['add tests']}
+  model calls  3  (triage->local-small unmasked, assessor->local-small masked, assessor->local-small masked)
+  tokens       36 / 2000   (0/3 settled against the provider's count)
+
   the loop did not run forever; max_steps decided when to stop
 ```
 
@@ -148,29 +158,39 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 實際由 Gemma 4 E4B 作答的輸出（節錄）：
 
 ```
-  model said  '{"severity": "critical"}'
-  model said  '{"approved": true, "comments": ["Metrics look small and
-                focused. Please provide a description of the changes..."]}'
+  model said  '{"severity": "low"}'
+  model said  '{
+  "approved": true,
+  "comments": [
+    "The change is
+                small and localized (2 sections, low diff), which is
+                good.", ... ]
+}'
 
+  with the model:
   trail        triage -> indexer -> assessor -> approval_gate -> publisher
   steps        5 / 8
-  model calls  2  (triage->local-small but answered by ollama:gemma4:e4b, ...)
-  tokens       708 / 2000   (2/2 settled against the provider's count)
+  triage_report      {'severity': 'low', 'document': {'id': 4821, ...}}
+  publish_report     {'published': True, 'result': {'index': 'corpus-live', 'revision': 99214, 'tier': 'published'}}
+  model calls  2  (triage->local-small unmasked but answered by ollama:gemma4:e4b, ...)
+  tokens       1084 / 2000   (2/2 settled against the provider's count)
 
-  severity     'normal' (default)  ->  'critical' (Gemma)
+  severity     'normal' (default)  ->  'low' (Gemma)
   same trail?  True        <- routing is code, not a prompt
   same steps?  5 vs 5
-  deployed?    True         <- still only because a human said yes
+  published?    True         <- still only because a human said yes
 
-  estimated    50 tokens   <- the char heuristic, from the visible reply
-  provider     708 tokens  <- eval_count, which includes Gemma's
-               hidden reasoning: 14x the estimate.
+  estimated    73 tokens   <- the char heuristic, from the visible reply
+  provider     1084 tokens   <- eval_count, which includes Gemma's
+               hidden reasoning: 15x the estimate.
 
   rejected     0   every reply matched the schema
 ```
 
-模型對嚴重度的判斷和預設值不同——登入噴 500 確實不該是 `normal`——
-而路徑一步都沒變，因為沒有任何地方把路徑交給它決定。
+模型對嚴重度的判斷和預設值不同——它把一份例行的程序改版讀成 `low` 而不是 `normal`——
+而路徑一步都沒變，因為沒有任何地方把路徑交給它決定。回覆的用詞也是模型自己的，
+那正是這道縫的意義，也是它誠實的邊界：判斷的內容就是模型說的那樣，
+而控制平面對它做的唯一一件事，是在邊界把型別檢查過。
 
 這個情境特意要展示三件事：
 
@@ -182,7 +202,7 @@ uv run --with langgraph python examples/run_pipeline.py gemma
   這就是「模型在步驟*裡面*做判斷」與「模型決定步驟*之間*怎麼走」的差別。
 - **它終於讓 `settle()` 有東西可證。** 預算守衛必須在供應商回報用量之前就做決定，
   所以它只能照看得見的字元去估。而 Gemma 4 E4B 會先推理再作答，`eval_count`
-  把那段推理也計費：這次執行是 **708 tokens 對上估算的 50**。估算不是小幅偏差，
+  把那段推理也計費：這次執行是 **1084 tokens 對上估算的 73**。估算不是小幅偏差，
   是差一個數量級，而且**偏在要命的那個方向**——帳本若留著估算值，就會把帳少報這麼多。
   這正是 record 為什麼把 `tokens_actual` 分開放、而且在真實數字到達前一律留 `None`。
 
@@ -192,16 +212,16 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 
 | stub | 真實環境換成什麼 |
 |---|---|
-| `read_document`、`tag_document` | Jira / Linear REST client |
-| `read_draft`、`post_finding` | GitHub / GitLab API |
-| `write_index`、`read_index` | 你自己的儲存——一張表、一個 wiki 頁 |
-| `publish` | CI 觸發：Actions dispatch、Argo、Jenkins |
+| `read_document`、`tag_document` | 收件那一側——一個追蹤系統的 REST client、一個文件庫 |
+| `read_draft`、`post_finding` | 草稿與意見實際住的地方——Git 平台的審閱 API、一套 CMS |
+| `write_index`、`read_index` | 你自己的儲存——一張表、一個向量索引 |
+| `publish` | 索引那一步：CI 觸發、一個建索引的 job、換一次 alias |
 
 換一個就是換一個函式；註冊表不知道、也不需要知道憑證從哪來。
 
-**什麼驅動一次執行。** 一個 webhook 把進來的事件對應成 `Trigger`，然後帶著 thread id 呼叫 `invoke`——thread id 通常就用 ticket 或 PR 編號，這樣**重送的 webhook 會恢復同一次執行，而不是開第二次**。trigger 的詞彙刻意是封閉集合，就是為了讓這個對應是一本讀得懂的字典，而不是一段提示詞。
+**什麼驅動一次執行。** 一個 webhook 把進來的事件對應成 `Trigger`，然後帶著 thread id 呼叫 `invoke`——thread id 通常就用文件或草稿的編號，這樣**重送的 webhook 會恢復同一次執行，而不是開第二次**。trigger 的詞彙刻意是封閉集合，就是為了讓這個對應是一本讀得懂的字典，而不是一段提示詞。
 
-**人在哪裡看到這個暫停。** 執行停住時，`app.get_state(cfg).next` 是 `("approval_gate",)`，而 state 裡帶著審查代理的報告。這些資訊足以算繪出一則 Slack 訊息或一個網頁，附上證據與兩顆按鈕；按鈕用同一個 thread id 呼叫 `invoke` 並帶上 `Command(update={"human_decision": ...})`。**沒有任何輪詢，而且暫停期間不花成本。**
+**人在哪裡看到這個暫停。** 執行停住時，`app.get_state(cfg).next` 是 `("approval_gate",)`，而 state 裡帶著評斷代理的報告。這些資訊足以算繪出一則 Slack 訊息或一個網頁，附上證據與兩顆按鈕；按鈕用同一個 thread id 呼叫 `invoke` 並帶上 `Command(update={"human_decision": ...})`。**沒有任何輪詢，而且暫停期間不花成本。**
 
 **上線前要換掉的東西。** 持久化的 checkpointer，暫停才撐得過重啟——`MemorySaver` 會掉。掛鉤已經在了，而且已經拒絕假裝：`build_graph(durability="require")` 會直接拋錯而不是退回預設，連明確傳一個 `MemorySaver` 進去都不算數。工具要有行程或容器隔離，因為白名單是授權、不是隔離。配額要換成共享計數器，因為這裡的帳本是單行程的，兩個 worker 各自拿到完整額度。還有評測閘門後面要接一個真的計分器，它目前是吃指標、不是產生指標。
 
@@ -230,14 +250,14 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 
 **核可**（`test_hitl.py`）
 - 執行是真的停住：`snapshot.next == ("approval_gate",)` 且此時還沒有 `publish_report`
-- 核可 → 部署；拒絕 → 結束但不部署，並寫明原因
-- **不帶決定恢復，照樣拒絕部署**
-- 機器判定通過的審查只會設 `requires_approval`，**不會寫 `human_decision`** —— 所以審查者沒有代替人核可。而**一個偏要寫的節點會拋錯**，因為 `build_graph` 拒絕任何指名 `state.PROTECTED` 欄位的 patch；拔掉那層包裝會讓四條測試變紅。它曾經只是慣例，見 [docs/errata.md](docs/errata.md) 的 A1
+- 核可 → 發布；拒絕 → 結束但不發布，並寫明原因
+- **不帶決定恢復，照樣拒絕發布**
+- 機器判定通過的評斷只會設 `requires_approval`，**不會寫 `human_decision`** —— 所以評斷者沒有代替人核可。而**一個偏要寫的節點會拋錯**，因為 `build_graph` 拒絕任何指名 `state.PROTECTED` 欄位的 patch；拔掉那層包裝會讓四條測試變紅。它曾經只是慣例，見 [docs/errata.md](docs/errata.md) 的 A1
 
 **交棒**（`test_handoff.py`）
 - 每個代理只寫自己那一個 `*_report`，不碰別人的
-- 審查不通過會交棒回規劃者
-- 規劃者 ↔ 審查者的循環**正好停在 `max_steps`**
+- 評斷不通過會交棒回收錄者
+- 收錄者 ↔ 評斷者的循環**正好停在 `max_steps`**
 - 上限觸發後狀態仍然完整、事後查得出來
 
 **預算**（`test_budget.py`）
@@ -316,9 +336,11 @@ uv run --with langgraph python examples/run_pipeline.py gemma
 
 ## 這是從哪來的
 
-我在工作上做過一套 Agent 平台——七個代理配一個確定性的 supervisor、帶租戶權限的工具層、核可閘門、評測閘門與漂移偵測——那份程式碼是私有的。這個 repo 是把其中的**決策**在另一個領域從零重做一次，讓它們看得見。
+我在工作上做過一套 Agent 平台——七個代理配一個確定性的 supervisor、帶租戶權限的工具層、核可閘門、評測閘門與漂移偵測——那份程式碼是私有的。這個 repo 是把其中的**決策**從零重做一次，讓它們看得見。
 
 **這裡沒有使用該系統的任何程式碼。** 帶過來的是推理過程，寫在 [docs/design.zh-TW.md](docs/design.zh-TW.md)；而邊界——那套系統的哪些能力在這裡重現、哪些刻意不做——寫在 [docs/scope.zh-TW.md](docs/scope.zh-TW.md)。
+
+**為什麼選這個域。** 它刻意選在通用的那一層：分流、收錄、評斷、閘門、發布，是任何一個在維運知識庫的團隊本來就有的形狀，所以那些決策讀得出來，而來源讀不出來。保護來自**詞彙足夠普通**，不是來自**領域足夠遙遠**。這句話要照它真正的大小說：它降低的是**用詞**的指向性，而**結構**上的相似一點都沒有少——四個代理配一道確定性的路由、單一一個模型入口、一道人必須經過的閘門、一份稽核紀錄。那個結構就是這個 repo 的全部價值，所以它不是我能一邊拿掉、一邊還留著東西可看的部分。詞彙是刻意通用的；形狀不是，也不該是。
 
 ### 哪些地方比原系統更嚴格
 
