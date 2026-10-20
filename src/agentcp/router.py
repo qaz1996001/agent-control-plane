@@ -11,7 +11,7 @@ Two consequences worth stating, because they are the reason for the design:
   one dict, and fixable without evals.
 
 An unknown trigger raises. Guessing a default is how a typo silently becomes
-a deploy.
+a publish.
 """
 
 from __future__ import annotations
@@ -19,15 +19,15 @@ from __future__ import annotations
 from agentcp.state import Agent, PipelineState, Trigger
 
 ROUTE_TABLE: dict[str, Agent] = {
-    "ticket_opened": "triage",
-    "ticket_reopened": "triage",
-    "plan_ready": "planner",
-    "code_pushed": "reviewer",
-    "review_requested": "reviewer",
-    "review_changes_requested": "planner",
-    "review_passed": "deployer",
-    "deploy_requested": "deployer",
-    "deploy_failed": "triage",
+    "document_submitted": "triage",
+    "document_resubmitted": "triage",
+    "index_ready": "indexer",
+    "draft_updated": "assessor",
+    "assessment_requested": "assessor",
+    "revision_requested": "indexer",
+    "assessment_passed": "publisher",
+    "publish_requested": "publisher",
+    "publish_failed": "triage",
 }
 
 

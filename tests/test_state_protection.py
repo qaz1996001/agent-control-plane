@@ -2,7 +2,7 @@
 
 These tests exist because the claim they pin used to be false. The docs
 said "no agent can set ``human_decision``, which is what makes 'the
-reviewer cannot approve on the human's behalf' a structural property
+assessor cannot approve on the human's behalf' a structural property
 rather than a convention" -- and it was a convention. ``PipelineState``
 was a bare ``TypedDict`` and ``build_graph`` passed node patches through
 untouched, so any node could forge the human's consent, relax the runaway
@@ -41,7 +41,7 @@ def _run(thread: str, **state_kw):
     app = build_graph()
     cfg = {"configurable": {"thread_id": thread}}
     out = app.invoke(
-        new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id=thread, **state_kw),
+        new_state("document_submitted", {"document": 42, "draft": 7}, trace_id=thread, **state_kw),
         cfg,
     )
     return app, cfg, out
@@ -55,52 +55,52 @@ def test_a_node_cannot_write_a_protected_field(field):
     the same bug in a smaller place, and a hand-written test per field
     would be the thing that gets forgotten when the list grows.
     """
-    original, rogue = _rogue("planner", {field: "anything"})
-    agents.NODES["planner"] = rogue
+    original, rogue = _rogue("indexer", {field: "anything"})
+    agents.NODES["indexer"] = rogue
     try:
         with pytest.raises(ProtectedFieldWritten) as caught:
             _run(f"protect-{field}")
         assert field in str(caught.value)
     finally:
-        agents.NODES["planner"] = original
+        agents.NODES["indexer"] = original
 
 
 def test_a_node_cannot_forge_the_human_decision_and_deploy():
     """The whole point, stated as the attack it prevents.
 
     Before the guard: a node wrote ``human_decision`` itself, the run
-    still paused at the gate, and resuming with *no* decision deployed to
+    still paused at the gate, and resuming with *no* decision published to
     production -- passing straight through the check that
     ``test_resuming_with_no_decision_still_refuses_to_deploy`` claims to
     pin, because by then a decision was on record.
     """
     original, rogue = _rogue(
-        "planner", {"human_decision": {"approve": True, "reason": "the agent decided"}}
+        "indexer", {"human_decision": {"approve": True, "reason": "the agent decided"}}
     )
-    agents.NODES["planner"] = rogue
+    agents.NODES["indexer"] = rogue
     try:
         with pytest.raises(ProtectedFieldWritten):
             _run("forge-decision")
     finally:
-        agents.NODES["planner"] = original
+        agents.NODES["indexer"] = original
 
 
 def test_routing_straight_to_the_deployer_still_does_not_deploy():
     """``next_agent`` is not protected, and does not need to be.
 
     Handing off is what a node is *for*, so the guard cannot cover it: a
-    node can still send a run directly to the deployer, skipping the gate
-    entirely. What stops the deploy is not the gate but the deployer's own
+    node can still send a run directly to the publisher, skipping the gate
+    entirely. What stops the publish is not the gate but the publisher's own
     refusal -- with no human decision on record there is nothing to act
     on, and the decision is the field that cannot be forged.
     """
-    original, rogue = _rogue("triage", {"next_agent": "deployer"})
+    original, rogue = _rogue("triage", {"next_agent": "publisher"})
     agents.NODES["triage"] = rogue
     try:
         _app, _cfg, out = _run("skip-the-gate")
-        assert out["completed"] == ["triage", "deployer"]
-        assert out["deploy_report"]["deployed"] is False
-        assert "no human approval" in out["deploy_report"]["reason"]
+        assert out["completed"] == ["triage", "publisher"]
+        assert out["publish_report"]["published"] is False
+        assert "no human approval" in out["publish_report"]["reason"]
     finally:
         agents.NODES["triage"] = original
 
@@ -111,16 +111,16 @@ def test_a_node_cannot_rewrite_the_audit_trail():
     The previous arrangement had every node splice the list itself
     (``[*state["completed"], node]``), which is append-only exactly as
     long as each node remembers to splice rather than assign. A node
-    returning ``completed=["planner"]`` erased triage's record of itself.
+    returning ``completed=["indexer"]`` erased triage's record of itself.
     """
-    original, rogue = _rogue("planner", {"completed": ["planner"]})
-    agents.NODES["planner"] = rogue
+    original, rogue = _rogue("indexer", {"completed": ["indexer"]})
+    agents.NODES["indexer"] = rogue
     try:
         _app, _cfg, out = _run("erase-trail")
         assert out["completed"][0] == "triage"
-        assert out["completed"].count("planner") == 1
+        assert out["completed"].count("indexer") == 1
     finally:
-        agents.NODES["planner"] = original
+        agents.NODES["indexer"] = original
 
 
 def test_a_node_cannot_erase_another_nodes_call_record():
@@ -129,7 +129,7 @@ def test_a_node_cannot_erase_another_nodes_call_record():
     The ledger answers "which provider saw this, and was it masked first"
     after something goes wrong, so a later node dropping an earlier one's
     record would make it a claim rather than a record. The reducer stops
-    that: the rogue reviewer below returns ``calls=[]`` and triage's entry
+    that: the rogue assessor below returns ``calls=[]`` and triage's entry
     survives.
 
     What it does *not* stop, and what this test is written to be honest
@@ -140,13 +140,13 @@ def test_a_node_cannot_erase_another_nodes_call_record():
     the record back, which is a different design. Named in the assertion
     rather than left for a reader to discover.
     """
-    original, rogue = _rogue("reviewer", {"calls": []})
-    agents.NODES["reviewer"] = rogue
+    original, rogue = _rogue("assessor", {"calls": []})
+    agents.NODES["assessor"] = rogue
     try:
         _app, _cfg, out = _run("erase-ledger")
         assert [c["agent"] for c in out["calls"]] == ["triage"]
     finally:
-        agents.NODES["reviewer"] = original
+        agents.NODES["assessor"] = original
 
 
 def test_an_ordinary_run_appends_each_node_exactly_once():
@@ -159,10 +159,10 @@ def test_an_ordinary_run_appends_each_node_exactly_once():
     app, cfg, _out = _run("append-once")
     out = app.invoke(Command(update={"human_decision": {"approve": True}}), cfg)
     assert out["completed"] == [
-        "triage", "planner", "reviewer", "approval_gate", "deployer",
+        "triage", "indexer", "assessor", "approval_gate", "publisher",
     ]
     assert out["step_count"] == 5
-    assert [c["agent"] for c in out["calls"]] == ["triage", "reviewer"]
+    assert [c["agent"] for c in out["calls"]] == ["triage", "assessor"]
 
 
 def test_the_gate_goes_through_the_same_guard_as_every_other_node():

@@ -17,12 +17,12 @@ REAL_HOST = "db-prod-3.internal"
 
 def run_to_gate(**kw):
     app = build_graph()
-    app.invoke(new_state("ticket_opened", {"ticket": 42, "pr": 7}, **kw), CFG)
+    app.invoke(new_state("document_submitted", {"document": 42, "draft": 7}, **kw), CFG)
     return app
 
 
 def plant_pii_in_the_ticket():
-    """Make ``read_ticket`` return PII, the way a real ticket store would.
+    """Make ``read_document`` return PII, the way a real document store would.
 
     The PII enters through the tool rather than through ``payload``,
     because ``payload`` is caller-supplied identification that is
@@ -31,8 +31,8 @@ def plant_pii_in_the_ticket():
     """
     tools.register(
         tools.Tool(
-            "read_ticket", "fake read_ticket", {"type": "object"},
-            lambda a: {"title": "login fails",
+            "read_document", "fake read_document", {"type": "object"},
+            lambda a: {"title": "calibration procedure",
                        "body": f"ping {REAL_EMAIL} on {REAL_HOST}"},
         )
     )
@@ -75,7 +75,7 @@ def _functions_calling_the_injected_judge(module) -> list[str]:
 def test_every_model_consulting_node_leaves_exactly_one_record():
     app = run_to_gate()
     state = app.get_state(CFG).values
-    assert [c["agent"] for c in state["calls"]] == ["triage", "reviewer"]
+    assert [c["agent"] for c in state["calls"]] == ["triage", "assessor"]
 
 
 def test_a_record_names_the_provider_and_why_it_was_chosen():
@@ -97,7 +97,7 @@ def test_the_run_token_counter_is_actually_charged():
 
 
 def test_the_estimate_is_replaced_by_the_providers_count():
-    state = new_state("ticket_opened", {"ticket": 1}, trace_id="t-1")
+    state = new_state("document_submitted", {"document": 1}, trace_id="t-1")
     call = agents.consult(
         state, "triage", "p", {"a": "x" * 60},
         lambda prompt, ctx: {"text": "y" * 60, "tokens": 7},
@@ -109,7 +109,7 @@ def test_the_estimate_is_replaced_by_the_providers_count():
 
 
 def test_an_unsettled_record_is_distinguishable_from_a_settled_one():
-    state = new_state("ticket_opened", {"ticket": 1}, trace_id="t-1")
+    state = new_state("document_submitted", {"document": 1}, trace_id="t-1")
     call = agents.consult(
         state, "triage", "p", {"a": "x"},
         lambda prompt, ctx: {"text": "short"},
@@ -120,7 +120,7 @@ def test_an_unsettled_record_is_distinguishable_from_a_settled_one():
 
 
 def test_a_response_cut_by_the_budget_still_leaves_a_record():
-    state = new_state("ticket_opened", {"ticket": 1}, budget_tokens=2, trace_id="t-1")
+    state = new_state("document_submitted", {"document": 1}, budget_tokens=2, trace_id="t-1")
     call = agents.consult(
         state, "triage", "p", {"a": "x"},
         lambda prompt, ctx: {"text": "z" * 400},
@@ -137,7 +137,7 @@ def test_a_cut_response_is_refused_not_used():
     being used -- except this. An answer the model had not finished
     giving reads exactly like one it had.
     """
-    state = new_state("ticket_opened", {"ticket": 1}, budget_tokens=2, trace_id="t-1")
+    state = new_state("document_submitted", {"document": 1}, budget_tokens=2, trace_id="t-1")
     call = agents.consult(
         state, "triage", "p", {"a": "x"},
         lambda prompt, ctx: {"severity": "critical", "text": "z" * 400},
@@ -157,7 +157,7 @@ def test_an_exhausted_budget_refuses_before_the_judge_is_called():
     """
     called = []
     state = new_state(
-        "ticket_opened", {"ticket": 1},
+        "document_submitted", {"document": 1},
         budget_tokens=10, tokens_used=10, trace_id="t-1",
     )
     call = agents.consult(
@@ -175,18 +175,18 @@ def test_a_budget_refusal_stops_the_run_rather_than_deploying():
     app = build_graph()
     cfg = {"configurable": {"thread_id": "audit-budget"}}
     out = app.invoke(
-        new_state("ticket_opened", {"ticket": 42, "pr": 7},
+        new_state("document_submitted", {"document": 42, "draft": 7},
                   budget_tokens=1, trace_id="t-budget"),
         cfg,
     )
     assert out["triage_report"]["severity"] == "unknown"
     assert "budget" in out["triage_report"]["refused"]
-    assert "deploy_report" not in out
+    assert "publish_report" not in out
     assert app.get_state(cfg).next == ()
 
 
 def test_a_refused_call_still_leaves_a_record():
-    state = new_state("ticket_opened", {"ticket": 1}, sensitivity="restricted", trace_id="t-1")
+    state = new_state("document_submitted", {"document": 1}, sensitivity="restricted", trace_id="t-1")
     original = agents.HEALTHY
     agents.HEALTHY = frozenset({"cloud-small"})
     try:
@@ -209,7 +209,7 @@ def test_the_judge_only_ever_sees_masked_text():
         seen["text"] = context["text"]
         return {"text": "ok"}
 
-    state = new_state("ticket_opened", {"ticket": 1}, trace_id="t-1")
+    state = new_state("document_submitted", {"document": 1}, trace_id="t-1")
     agents.consult(
         state, "triage", "p",
         {"body": "ping sam.okafor@example.com on db-prod-3.internal"},
@@ -232,7 +232,7 @@ def test_the_unmasking_map_never_reaches_checkpointed_state():
     plant_pii_in_the_ticket()
     app = build_graph()
     cfg = {"configurable": {"thread_id": "audit-leak"}}
-    app.invoke(new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="t-leak"), cfg)
+    app.invoke(new_state("document_submitted", {"document": 42, "draft": 7}, trace_id="t-leak"), cfg)
     values = app.get_state(cfg).values
 
     assert any(c["masked"] for c in values["calls"]), "nothing was masked to leak"
@@ -261,7 +261,7 @@ def test_the_judge_sees_only_masked_context_for_every_call_in_a_run():
         return {"severity": "normal", "approved": True, "comments": [], "text": "ok"}
 
     build_graph(judge=spy).invoke(
-        new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="t-mask"),
+        new_state("document_submitted", {"document": 42, "draft": 7}, trace_id="t-mask"),
         {"configurable": {"thread_id": "audit-mask"}},
     )
 
@@ -297,7 +297,7 @@ def test_every_judge_call_in_a_run_went_through_consult():
     agents.consult = counting_consult
     try:
         build_graph(judge=spy).invoke(
-            new_state("ticket_opened", {"ticket": 42, "pr": 7}, trace_id="t-door"),
+            new_state("document_submitted", {"document": 42, "draft": 7}, trace_id="t-door"),
             {"configurable": {"thread_id": "audit-door"}},
         )
     finally:
@@ -311,5 +311,5 @@ def test_approve_path_records_no_call_for_the_gate_or_deployer():
     app = run_to_gate()
     app.invoke(Command(update={"human_decision": {"approve": True}}), CFG)
     state = app.get_state(CFG).values
-    assert {c["agent"] for c in state["calls"]} == {"triage", "reviewer"}
-    assert state["deploy_report"]["deployed"] is True
+    assert {c["agent"] for c in state["calls"]} == {"triage", "assessor"}
+    assert state["publish_report"]["published"] is True

@@ -10,13 +10,13 @@ In a real deployment:
 ====================  =============================================
 stub                  what replaces it
 ====================  =============================================
-read_ticket           Jira / Linear REST client
-label_ticket          Jira / Linear REST client
-read_diff             GitHub / GitLab compare API
-post_comment          GitHub review-comment API
-write_plan            your own store (a table, a wiki page)
-read_plan             the same store
-deploy                CI trigger (Actions dispatch, Argo, Jenkins)
+read_document           Jira / Linear REST client
+tag_document          Jira / Linear REST client
+read_draft             GitHub / GitLab compare API
+post_finding          GitHub review-comment API
+write_index            your own store (a table, a wiki page)
+read_index             the same store
+publish                CI trigger (Actions dispatch, Argo, Jenkins)
 ====================  =============================================
 
 None of them get credentials from this file. A real adapter reads them
@@ -44,28 +44,28 @@ def _stub(name: str, result: dict):
 def register_stubs() -> None:
     """Register one stub per integration seam."""
     seams = [
-        ("read_ticket", "Jira/Linear: fetch issue",
-         {"id": 4821, "title": "Login returns 500 on submit", "reporter": "support"}),
-        ("label_ticket", "Jira/Linear: set labels",
-         {"labelled": ["bug", "auth"]}),
-        ("write_plan", "Store: persist the plan",
-         {"steps": ["reproduce locally", "fix null session", "add regression test"]}),
+        ("read_document", "Jira/Linear: fetch issue",
+         {"id": 4821, "title": "Calibration procedure, revision C", "submitter": "support"}),
+        ("tag_document", "Jira/Linear: set labels",
+         {"tagged": ["procedure", "calibration"]}),
+        ("write_index", "Store: persist the plan",
+         {"chunks": ["split by section", "strip boilerplate", "attach source refs"]}),
         # The author address and the build host are here so that masking is
         # exercised by a real run, not only by the `mask` scenario calling
-        # privacy.mask directly. The diff is the right fixture to carry
-        # them: reviewer_node puts only the *verdict* into state, so these
+        # privacy.mask directly. The draft is the right fixture to carry
+        # them: assessor_node puts only the *verdict* into state, so these
         # values reach the model's context and never reach a checkpoint.
-        # (triage_report, by contrast, stores the whole ticket, so PII in
-        # the ticket fixture would be written into checkpointed state.)
-        ("read_diff", "GitHub: compare base..head",
-         {"pr": 318, "files": 2, "additions": 34, "deletions": 6,
+        # (triage_report, by contrast, stores the whole document, so PII in
+        # the document fixture would be written into checkpointed state.)
+        ("read_draft", "GitHub: compare base..head",
+         {"draft": 318, "sections": 2, "added": 34, "removed": 6,
           "author": "sam.okafor@example.com", "built_on": "ci-runner-4.internal"}),
-        ("post_comment", "GitHub: create review comment",
-         {"posted": True}),
-        ("read_plan", "Store: load the plan",
-         {"steps": ["reproduce locally", "fix null session", "add regression test"]}),
-        ("deploy", "CI: dispatch deploy workflow",
-         {"workflow": "deploy.yml", "run_id": 99214, "env": "production"}),
+        ("post_finding", "GitHub: create review comment",
+         {"filed": True}),
+        ("read_index", "Store: load the plan",
+         {"chunks": ["split by section", "strip boilerplate", "attach source refs"]}),
+        ("publish", "CI: dispatch publish workflow",
+         {"index": "corpus-live", "revision": 99214, "tier": "published"}),
     ]
     for name, desc, result in seams:
         tools.register(

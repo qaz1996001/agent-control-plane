@@ -2,8 +2,8 @@
 
 The contract is explicit on purpose. Each agent writes exactly one
 ``*_report`` key, and those reports are the only channel between agents --
-``deployer_node`` reads ``plan_report``, so a report is a published
-contract rather than an internal. A reviewer can tell from this file alone
+``publisher_node`` reads ``index_report``, so a report is a published
+contract rather than an internal. A assessor can tell from this file alone
 what any node is allowed to produce.
 """
 
@@ -14,18 +14,18 @@ from typing import Annotated, Literal, TypedDict
 from uuid import uuid4
 
 Trigger = Literal[
-    "ticket_opened",
-    "ticket_reopened",
-    "plan_ready",
-    "code_pushed",
-    "review_requested",
-    "review_passed",
-    "review_changes_requested",
-    "deploy_requested",
-    "deploy_failed",
+    "document_submitted",
+    "document_resubmitted",
+    "index_ready",
+    "draft_updated",
+    "assessment_requested",
+    "assessment_passed",
+    "revision_requested",
+    "publish_requested",
+    "publish_failed",
 ]
 
-Agent = Literal["triage", "planner", "reviewer", "deployer", "approval_gate"]
+Agent = Literal["triage", "indexer", "assessor", "publisher", "approval_gate"]
 
 #: Keys no node may write. Four of them are the run's constraints, fixed
 #: at :func:`new_state`; the fifth is the human's decision, which may only
@@ -42,7 +42,7 @@ Agent = Literal["triage", "planner", "reviewer", "deployer", "approval_gate"]
 #:
 #: ``next_agent`` is deliberately absent. Handing off is what a node is
 #: *for*, so it cannot be protected; the gate is not what stops a node
-#: routing straight to the deployer -- the deployer's own refusal is,
+#: routing straight to the publisher -- the publisher's own refusal is,
 #: because without a human decision on record there is nothing to act on.
 PROTECTED: frozenset[str] = frozenset(
     {"human_decision", "max_steps", "sensitivity", "tenant", "trace_id"}
@@ -58,7 +58,7 @@ class PipelineState(TypedDict, total=False):
         The event that started this run. The router reads only this.
     payload : dict
         Event-specific data. Agents read it; the router never does.
-    triage_report, plan_report, review_report, deploy_report : dict
+    triage_report, index_report, assessment_report, publish_report : dict
         One slot per agent. An agent writes only its own slot.
     next_agent : Agent or None
         Set by an agent to hand off. Absent means "stop after me".
@@ -93,9 +93,9 @@ class PipelineState(TypedDict, total=False):
     trigger: Trigger
     payload: dict
     triage_report: dict
-    plan_report: dict
-    review_report: dict
-    deploy_report: dict
+    index_report: dict
+    assessment_report: dict
+    publish_report: dict
     next_agent: Agent | None
     requires_approval: bool
     human_decision: dict | None

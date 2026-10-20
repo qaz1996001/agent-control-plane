@@ -116,7 +116,7 @@ def consult(
     converts an exception into ``{"error": ...}`` so a broken tool cannot
     kill a run holding an approval, but that only contains the failure --
     asking a model to review an error string gets an answer, and the
-    answer reads exactly like a review of a real diff.
+    answer reads exactly like a review of a real draft.
 
     The last two refusals are the same guard at two points. The budget is
     checked *before* the judge is called, because that is the only moment
@@ -281,13 +281,13 @@ def _bill(patch: dict, state: PipelineState, call: Consultation) -> dict:
 
 
 def triage_node(state: PipelineState, judge: Judge | None = None) -> dict:
-    """Classify the ticket and decide whether it needs a plan."""
+    """Classify the document and decide whether it needs indexing."""
     patch = _advance(state, "triage")
-    ticket = tools.invoke(
-        "triage", "read_ticket", {"id": state["payload"].get("ticket")},
+    document = tools.invoke(
+        "triage", "read_document", {"id": state["payload"].get("document")},
         state.get("tenant", tools.DEFAULT_TENANT),
     )
-    call = consult(state, "triage", "classify severity", ticket, judge, _default_severity)
+    call = consult(state, "triage", "classify severity", document, judge, _default_severity)
     _bill(patch, state, call)
     if call.refused:
         patch["triage_report"] = {"severity": "unknown", "refused": call.refused}
@@ -295,72 +295,74 @@ def triage_node(state: PipelineState, judge: Judge | None = None) -> dict:
         return patch
     patch["triage_report"] = {
         "severity": call.verdict.get("severity", "normal"),
-        "ticket": ticket,
+        "document": document,
     }
-    patch["next_agent"] = "planner"
+    patch["next_agent"] = "indexer"
     return patch
 
 
-def planner_node(state: PipelineState, judge: Judge | None = None) -> dict:
-    """Turn a triaged ticket into a plan.
+def indexer_node(state: PipelineState, judge: Judge | None = None) -> dict:
+    """Turn a triaged document into an index entry.
 
-    Takes no judgement: the plan is whatever the store says it is. The
+    Takes no judgement: the entry is whatever the store says it is. The
     ``judge`` parameter is kept so every node has one shape.
     """
-    patch = _advance(state, "planner")
+    patch = _advance(state, "indexer")
     tenant = state.get("tenant", tools.DEFAULT_TENANT)
-    plan = tools.invoke("planner", "write_plan", {"ticket": state["payload"].get("ticket")}, tenant)
-    patch["plan_report"] = {"plan": plan}
-    patch["next_agent"] = "reviewer"
+    entry = tools.invoke(
+        "indexer", "write_index", {"document": state["payload"].get("document")}, tenant,
+    )
+    patch["index_report"] = {"entry": entry}
+    patch["next_agent"] = "assessor"
     return patch
 
 
-def reviewer_node(state: PipelineState, judge: Judge | None = None) -> dict:
-    """Review the diff and decide whether it may proceed to deploy."""
-    patch = _advance(state, "reviewer")
+def assessor_node(state: PipelineState, judge: Judge | None = None) -> dict:
+    """Review the draft and decide whether it may proceed to publish."""
+    patch = _advance(state, "assessor")
     tenant = state.get("tenant", tools.DEFAULT_TENANT)
-    diff = tools.invoke("reviewer", "read_diff", {"pr": state["payload"].get("pr")}, tenant)
-    call = consult(state, "reviewer", "review diff", diff, judge, _default_verdict)
+    draft = tools.invoke("assessor", "read_draft", {"draft": state["payload"].get("draft")}, tenant)
+    call = consult(state, "assessor", "review draft", draft, judge, _default_verdict)
     _bill(patch, state, call)
     if call.refused:
-        patch["review_report"] = {"approved": False, "refused": call.refused}
+        patch["assessment_report"] = {"approved": False, "refused": call.refused}
         patch["next_agent"] = None
         return patch
-    patch["review_report"] = call.verdict
+    patch["assessment_report"] = call.verdict
     if call.verdict.get("approved"):
-        # A machine-approved review still does not deploy by itself.
+        # A machine-approved review still does not publish by itself.
         patch["requires_approval"] = True
-        patch["next_agent"] = "deployer"
+        patch["next_agent"] = "publisher"
     else:
-        patch["next_agent"] = "planner"
+        patch["next_agent"] = "indexer"
     return patch
 
 
-def deployer_node(state: PipelineState, judge: Judge | None = None) -> dict:
-    """Deploy. Refuses unless a human approved this run.
+def publisher_node(state: PipelineState, judge: Judge | None = None) -> dict:
+    """Publish to the live index. Refuses unless a human approved this run.
 
-    Takes no judgement. Whether to deploy is settled before this node
+    Takes no judgement. Whether to publish is settled before this node
     runs, by a person.
     """
-    patch = _advance(state, "deployer")
+    patch = _advance(state, "publisher")
     decision = state.get("human_decision") or {}
     if not decision.get("approve"):
-        patch["deploy_report"] = {"deployed": False, "reason": "no human approval on record"}
+        patch["publish_report"] = {"published": False, "reason": "no human approval on record"}
         patch["next_agent"] = None
         return patch
     try:
         result = tools.invoke(
-            "deployer", "deploy", {"plan": state.get("plan_report", {})},
+            "publisher", "publish", {"entry": state.get("index_report", {})},
             state.get("tenant", tools.DEFAULT_TENANT),
         )
     except tools.AccessDenied as exc:
         # A tenant-level withholding is policy, not a caller bug: refuse
-        # the deploy and say so, rather than ending the run in a stack
+        # the publish and say so, rather than ending the run in a stack
         # trace that loses the approval that was already given.
-        patch["deploy_report"] = {"deployed": False, "reason": str(exc)}
+        patch["publish_report"] = {"published": False, "reason": str(exc)}
         patch["next_agent"] = None
         return patch
-    patch["deploy_report"] = {"deployed": True, "result": result}
+    patch["publish_report"] = {"published": True, "result": result}
     patch["next_agent"] = None
     return patch
 
@@ -383,13 +385,13 @@ def _default_severity(prompt: str, context: dict) -> dict:
 
 
 def _default_verdict(prompt: str, context: dict) -> dict:
-    return {"approved": True, "comments": [], "text": "diff reviewed, no blocking issues."}
+    return {"approved": True, "comments": [], "text": "draft assessed, no blocking findings."}
 
 
 NODES: dict[str, Callable[..., dict]] = {
     "triage": triage_node,
-    "planner": planner_node,
-    "reviewer": reviewer_node,
-    "deployer": deployer_node,
+    "indexer": indexer_node,
+    "assessor": assessor_node,
+    "publisher": publisher_node,
     "approval_gate": approval_gate_node,
 }
